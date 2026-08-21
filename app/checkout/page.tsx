@@ -41,19 +41,13 @@ export default function CheckoutPage() {
   } = useStore();
 
   const [method, setMethod] =
-    useState<PaymentMethod>(
-      'COD'
-    );
+    useState<PaymentMethod>('COD');
 
   const [proof, setProof] =
-    useState<File | null>(
-      null
-    );
+    useState<File | null>(null);
 
-  const [
-    proofPreview,
-    setProofPreview,
-  ] = useState('');
+  const [proofPreview, setProofPreview] =
+    useState('');
 
   const [txid, setTxid] =
     useState('');
@@ -62,67 +56,52 @@ export default function CheckoutPage() {
     useState('');
 
   const [placed, setPlaced] =
-    useState<Order | null>(
-      null
-    );
+    useState<Order | null>(null);
 
   const [busy, setBusy] =
     useState(false);
 
-  /*
-   * Logged-in Supabase customer.
-   */
   const [userId, setUserId] =
-    useState<string | null>(
-      null
-    );
+    useState<string | null>(null);
 
-  const [
-    authChecked,
-    setAuthChecked,
-  ] = useState(false);
+  const [authChecked, setAuthChecked] =
+    useState(false);
 
   /*
-   * Check customer authentication.
+   * Check logged-in Supabase customer
    */
   useEffect(() => {
-    const supabase =
-      createClient();
+    const supabase = createClient();
 
     async function loadUser() {
       const {
         data: { user },
-      } =
-        await supabase.auth.getUser();
+      } = await supabase.auth.getUser();
 
-      setUserId(
-        user?.id || null
-      );
-
+      setUserId(user?.id || null);
       setAuthChecked(true);
     }
 
     loadUser();
 
     const {
-      data: {
-        subscription,
-      },
-    } =
-      supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          setUserId(
-            session?.user?.id ||
-              null
-          );
-        }
-      );
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUserId(
+          session?.user?.id || null
+        );
+      }
+    );
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
+  /*
+   * Totals
+   */
   const subtotal =
     cartProducts.reduce(
       (sum, item) =>
@@ -148,16 +127,14 @@ export default function CheckoutPage() {
             promo
               .trim()
               .toLowerCase() &&
-          new Date(
-            item.expiresAt
-          ) >= new Date()
+          new Date(item.expiresAt) >=
+            new Date()
       );
     }, [promo, promos]);
 
   const discount =
     validPromo
-      ? validPromo.type ===
-        'percentage'
+      ? validPromo.type === 'percentage'
         ? (subtotal *
             validPromo.value) /
           100
@@ -167,25 +144,22 @@ export default function CheckoutPage() {
           )
       : 0;
 
-  const total =
-    Math.max(
-      0,
-      subtotal +
-        shipping -
-        discount
-    );
+  const total = Math.max(
+    0,
+    subtotal +
+      shipping -
+      discount
+  );
 
-  function handleProof(
-    file?: File
-  ) {
-    if (!file) {
-      return;
-    }
+  /*
+   * Payment screenshot preview
+   */
+  function handleProof(file?: File) {
+    if (!file) return;
 
     setProof(file);
 
-    const reader =
-      new FileReader();
+    const reader = new FileReader();
 
     reader.onload = () => {
       setProofPreview(
@@ -193,11 +167,12 @@ export default function CheckoutPage() {
       );
     };
 
-    reader.readAsDataURL(
-      file
-    );
+    reader.readAsDataURL(file);
   }
 
+  /*
+   * PLACE ORDER
+   */
   async function submit(
     event: FormEvent<HTMLFormElement>
   ) {
@@ -207,42 +182,41 @@ export default function CheckoutPage() {
       return;
     }
 
-    /*
-     * IMPORTANT:
-     * Require a real customer account before
-     * an order can be placed.
-     */
-    const supabase =
-      createClient();
-
-    const {
-      data: { user },
-      error: userError,
-    } =
-      await supabase.auth.getUser();
-
-    if (
-      userError ||
-      !user
-    ) {
-      alert(
-        'Please login before placing your order.'
-      );
-
-      window.location.href =
-        '/login';
-
-      return;
-    }
-
     if (
       method === 'QR' &&
-      (!proof ||
-        !txid.trim())
+      (!proof || !txid.trim())
     ) {
       alert(
         'For QR Payment, upload payment proof and enter the transaction/reference ID.'
       );
+
+      return;
+    }
+
+    const supabase =
+      createClient();
+
+    /*
+     * Get real logged-in Supabase session.
+     * We need the access token for /api/orders.
+     */
+    const {
+      data: { session },
+      error: sessionError,
+    } =
+      await supabase.auth.getSession();
+
+    if (
+      sessionError ||
+      !session ||
+      !session.access_token
+    ) {
+      alert(
+        'Your login session has expired. Please login again.'
+      );
+
+      window.location.href =
+        '/login';
 
       return;
     }
@@ -256,14 +230,14 @@ export default function CheckoutPage() {
 
     let proofUrl = '';
 
-    /*
-     * Upload QR payment proof
-     */
-    if (
-      method === 'QR' &&
-      proof
-    ) {
-      try {
+    try {
+      /*
+       * QR payment proof upload
+       */
+      if (
+        method === 'QR' &&
+        proof
+      ) {
         const uploadForm =
           new FormData();
 
@@ -272,7 +246,7 @@ export default function CheckoutPage() {
           proof
         );
 
-        const response =
+        const proofResponse =
           await fetch(
             '/api/payment-proof',
             {
@@ -281,136 +255,155 @@ export default function CheckoutPage() {
             }
           );
 
-        if (response.ok) {
-          const result =
-            await response.json();
+        const proofResult =
+          await proofResponse
+            .json()
+            .catch(() => ({}));
 
-          proofUrl =
-            result.path || '';
+        if (!proofResponse.ok) {
+          throw new Error(
+            proofResult.error ||
+              'Payment proof upload failed.'
+          );
         }
-      } catch (error) {
-        console.error(
-          'Payment proof upload failed:',
-          error
-        );
+
+        proofUrl =
+          proofResult.path || '';
+
+        if (!proofUrl) {
+          throw new Error(
+            'Payment proof was uploaded but no storage path was returned.'
+          );
+        }
       }
-    }
-
-    /*
-     * Extend Order only in this file so we don't
-     * need to modify lib/types.ts.
-     *
-     * The userId is the Supabase authentication ID.
-     */
-    const order:
-      Order & {
-        userId: string;
-      } = {
-      id: `EP-${Date.now()
-        .toString()
-        .slice(-8)}`,
-
-      createdAt:
-        new Date().toISOString(),
 
       /*
-       * This is what prevents customers from
-       * sharing order history.
+       * Build order
        */
-      userId: user.id,
+      const order:
+        Order & {
+          userId: string;
+        } = {
+        id: `EP-${Date.now()
+          .toString()
+          .slice(-8)}`,
 
-      customer: {
-        name: String(
-          form.get('name')
-        ),
+        createdAt:
+          new Date().toISOString(),
 
-        email: String(
-          form.get('email')
-        ),
+        userId:
+          session.user.id,
 
-        phone: String(
-          form.get('phone')
-        ),
+        customer: {
+          name: String(
+            form.get('name') || ''
+          ).trim(),
 
-        address: String(
-          form.get(
-            'address'
-          )
-        ),
+          email: String(
+            form.get('email') || ''
+          ).trim(),
 
-        city: String(
-          form.get('city')
-        ),
+          phone: String(
+            form.get('phone') || ''
+          ).trim(),
 
-        postalCode: String(
-          form.get(
-            'postalCode'
-          )
-        ),
-      },
+          address: String(
+            form.get('address') || ''
+          ).trim(),
 
-      items:
-        cartProducts.map(
-          ({
-            product,
-            quantity,
-          }) => ({
-            productId:
-              product.id,
+          city: String(
+            form.get('city') || ''
+          ).trim(),
 
-            name:
-              product.name,
+          postalCode: String(
+            form.get(
+              'postalCode'
+            ) || ''
+          ).trim(),
+        },
 
-            price:
-              product.price,
+        items:
+          cartProducts.map(
+            ({
+              product,
+              quantity,
+            }) => ({
+              productId:
+                product.id,
 
-            quantity,
-          })
-        ),
+              name:
+                product.name,
 
-      subtotal,
-      shipping,
-      discount,
-      total,
+              price:
+                product.price,
 
-      paymentMethod:
-        method,
+              quantity,
+            })
+          ),
 
-      paymentProofName:
-        proof?.name,
+        subtotal,
+        shipping,
+        discount,
+        total,
 
-      paymentProofDataUrl:
-        proofPreview,
+        paymentMethod:
+          method,
 
-      transactionId:
-        method === 'QR'
-          ? txid.trim()
-          : undefined,
+        paymentProofName:
+          proof?.name,
 
-      status:
-        method === 'QR'
-          ? 'Payment Verification Required'
-          : 'Pending',
-    };
+        paymentProofDataUrl:
+          proofPreview,
 
-    /*
-     * Send order to server.
-     */
-    try {
-      const response =
-        await fetch(
-          '/api/orders',
-          {
-            method: 'POST',
+        transactionId:
+          method === 'QR'
+            ? txid.trim()
+            : undefined,
 
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
+        status:
+          method === 'QR'
+            ? 'Payment Verification Required'
+            : 'Pending',
+      };
 
-            body:
-              JSON.stringify(
-                {
+      /*
+       * Prevent infinite
+       * "Placing order..." state.
+       */
+      const controller =
+        new AbortController();
+
+      const timeoutId =
+        window.setTimeout(
+          () => {
+            controller.abort();
+          },
+          20000
+        );
+
+      let response: Response;
+
+      try {
+        response =
+          await fetch(
+            '/api/orders',
+            {
+              method: 'POST',
+
+              headers: {
+                'Content-Type':
+                  'application/json',
+
+                /*
+                 * Send logged-in customer token
+                 * to API route.
+                 */
+                Authorization:
+                  `Bearer ${session.access_token}`,
+              },
+
+              body:
+                JSON.stringify({
                   ...order,
 
                   paymentProofPath:
@@ -419,66 +412,91 @@ export default function CheckoutPage() {
                   promoCode:
                     validPromo?.code ||
                     null,
-                }
-              ),
-          }
+                }),
+
+              signal:
+                controller.signal,
+            }
+          );
+      } finally {
+        window.clearTimeout(
+          timeoutId
         );
-if (response.ok) {
-  const result =
-    await response.json();
+      }
 
-  order.id =
-    result.orderId ||
-    order.id;
-} else {
-  const result =
-    await response
-      .json()
-      .catch(() => ({}));
+      const result =
+        await response
+          .json()
+          .catch(() => ({}));
 
-  throw new Error(
-    result.error ||
-      'Could not place order.'
-  );
-}
-      
+      if (!response.ok) {
+        console.error(
+          'ORDER API ERROR:',
+          result
+        );
+
+        throw new Error(
+          result.error ||
+            'Could not place order.'
+        );
+      }
+
+      /*
+       * Replace temporary order ID
+       * with real Supabase order ID.
+       */
+      if (result.orderId) {
+        order.id =
+          String(
+            result.orderId
+          );
+      }
+
+      /*
+       * Save locally only AFTER
+       * Supabase successfully creates
+       * the order.
+       */
+      placeLocalOrder(order);
+
+      setPlaced(order);
+
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
     } catch (error) {
-  console.error(
-    'Order API failed:',
-    error
-  );
+      console.error(
+        'CHECKOUT ERROR:',
+        error
+      );
 
-  alert(
-    error instanceof Error
-      ? error.message
-      : 'Could not place order.'
-  );
-
-  setBusy(false);
-  return;
-}
-
-    /*
-     * Save to browser store.
-     *
-     * userId remains attached to the order,
-     * allowing /account/orders to filter it.
-     */
-    placeLocalOrder(
-      order
-    );
-
-    setPlaced(order);
-    setBusy(false);
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
+      if (
+        error instanceof Error &&
+        error.name === 'AbortError'
+      ) {
+        alert(
+          'The order request took too long. Please try again.'
+        );
+      } else {
+        alert(
+          error instanceof Error
+            ? error.message
+            : 'Could not place order.'
+        );
+      }
+    } finally {
+      /*
+       * Important:
+       * Never leave button stuck at
+       * "Placing order..."
+       */
+      setBusy(false);
+    }
   }
 
   /*
-   * Wait until Supabase checks customer login.
+   * Wait for authentication
    */
   if (!authChecked) {
     return (
@@ -493,7 +511,7 @@ if (response.ok) {
   }
 
   /*
-   * Customer must login before checkout.
+   * Require customer login
    */
   if (!userId) {
     return (
@@ -535,7 +553,7 @@ if (response.ok) {
   }
 
   /*
-   * SUCCESS
+   * ORDER SUCCESS
    */
   if (placed) {
     return (
@@ -593,9 +611,7 @@ if (response.ok) {
   /*
    * EMPTY CART
    */
-  if (
-    !cartProducts.length
-  ) {
+  if (!cartProducts.length) {
     return (
       <div className="container content-page">
         <div className="empty-state">
@@ -621,7 +637,9 @@ if (response.ok) {
           Almost yours
         </span>
 
-        <h1>Checkout.</h1>
+        <h1>
+          Checkout.
+        </h1>
 
         <p>
           No card forms here.
@@ -636,7 +654,8 @@ if (response.ok) {
         className="checkout-layout"
       >
         <div className="stack">
-          {/* DELIVERY */}
+          {/* DELIVERY DETAILS */}
+
           <section className="panel">
             <h3>
               Delivery details
@@ -664,6 +683,9 @@ if (response.ok) {
                   className="control"
                   name="email"
                   type="email"
+                  defaultValue={
+                    sessionEmailFallback()
+                  }
                   required
                 />
               </div>
@@ -718,7 +740,8 @@ if (response.ok) {
             </div>
           </section>
 
-          {/* PAYMENT */}
+          {/* PAYMENT METHOD */}
+
           <section className="panel">
             <h3>
               Payment method
@@ -728,22 +751,20 @@ if (response.ok) {
               {settings.codEnabled && (
                 <label
                   className={`payment-card ${
-                    method ===
-                    'COD'
+                    method === 'COD'
                       ? 'active'
                       : ''
                   }`}
                 >
                   <input
                     type="radio"
+                    name="paymentMethod"
+                    value="COD"
                     checked={
-                      method ===
-                      'COD'
+                      method === 'COD'
                     }
                     onChange={() =>
-                      setMethod(
-                        'COD'
-                      )
+                      setMethod('COD')
                     }
                   />
 
@@ -751,15 +772,14 @@ if (response.ok) {
 
                   <div>
                     <b>
-                      Cash on
-                      Delivery (COD)
+                      Cash on Delivery
+                      (COD)
                     </b>
 
                     <p className="muted">
-                      Place the
-                      order now and
-                      pay when it
-                      arrives.
+                      Place the order
+                      now and pay when
+                      it arrives.
                     </p>
                   </div>
                 </label>
@@ -768,22 +788,20 @@ if (response.ok) {
               {settings.qrEnabled && (
                 <label
                   className={`payment-card ${
-                    method ===
-                    'QR'
+                    method === 'QR'
                       ? 'active'
                       : ''
                   }`}
                 >
                   <input
                     type="radio"
+                    name="paymentMethod"
+                    value="QR"
                     checked={
-                      method ===
-                      'QR'
+                      method === 'QR'
                     }
                     onChange={() =>
-                      setMethod(
-                        'QR'
-                      )
+                      setMethod('QR')
                     }
                   />
 
@@ -822,10 +840,9 @@ if (response.ok) {
                 </b>
 
                 <p className="muted">
-                  Then upload a
-                  clear screenshot
-                  and enter the
-                  exact
+                  Then upload a clear
+                  screenshot and enter
+                  the exact
                   transaction/reference
                   ID.
                 </p>
@@ -833,8 +850,7 @@ if (response.ok) {
                 <div
                   className="field"
                   style={{
-                    textAlign:
-                      'left',
+                    textAlign: 'left',
                     marginTop: 14,
                   }}
                 >
@@ -846,13 +862,12 @@ if (response.ok) {
                     className="control"
                     type="file"
                     accept="image/*"
-                    required
-                    onChange={(
-                      event
-                    ) =>
+                    required={
+                      method === 'QR'
+                    }
+                    onChange={(event) =>
                       handleProof(
-                        event
-                          .target
+                        event.target
                           .files?.[0]
                       )
                     }
@@ -872,8 +887,7 @@ if (response.ok) {
                 <div
                   className="field"
                   style={{
-                    textAlign:
-                      'left',
+                    textAlign: 'left',
                     marginTop: 12,
                   }}
                 >
@@ -885,16 +899,15 @@ if (response.ok) {
                   <input
                     className="control"
                     value={txid}
-                    onChange={(
-                      event
-                    ) =>
+                    onChange={(event) =>
                       setTxid(
-                        event
-                          .target
+                        event.target
                           .value
                       )
                     }
-                    required
+                    required={
+                      method === 'QR'
+                    }
                     placeholder="e.g. TXN123456789"
                   />
                 </div>
@@ -904,11 +917,11 @@ if (response.ok) {
         </div>
 
         {/* ORDER SUMMARY */}
+
         <aside
           className="panel"
           style={{
-            height:
-              'max-content',
+            height: 'max-content',
           }}
         >
           <h3>
@@ -961,12 +974,9 @@ if (response.ok) {
               <input
                 className="control"
                 value={promo}
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   setPromo(
-                    event.target
-                      .value
+                    event.target.value
                   )
                 }
                 placeholder="EASY10"
@@ -995,9 +1005,7 @@ if (response.ok) {
             </span>
 
             <b>
-              {money(
-                subtotal
-              )}
+              {money(subtotal)}
             </b>
           </div>
 
@@ -1008,9 +1016,7 @@ if (response.ok) {
 
             <b>
               {shipping
-                ? money(
-                    shipping
-                  )
+                ? money(shipping)
                 : 'Free'}
             </b>
           </div>
@@ -1022,16 +1028,15 @@ if (response.ok) {
               </span>
 
               <b>
-                −
-                {money(
-                  discount
-                )}
+                −{money(discount)}
               </b>
             </div>
           )}
 
           <div className="summary-row total">
-            <span>Total</span>
+            <span>
+              Total
+            </span>
 
             <span>
               {money(total)}
@@ -1061,18 +1066,26 @@ if (response.ok) {
           <p
             className="muted"
             style={{
-              fontSize:
-                '.72rem',
+              fontSize: '.72rem',
               marginTop: 12,
             }}
           >
-            By ordering, you
-            agree to the store’s
-            shipping and return
-            policy.
+            By ordering, you agree
+            to the store’s shipping
+            and return policy.
           </p>
         </aside>
       </form>
     </div>
   );
+}
+
+/*
+ * Kept simple because the checkout
+ * already verifies the Supabase user.
+ * You can later pre-fill email/name
+ * from the Supabase profile.
+ */
+function sessionEmailFallback() {
+  return '';
 }
