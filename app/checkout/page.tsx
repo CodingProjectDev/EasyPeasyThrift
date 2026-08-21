@@ -423,33 +423,40 @@ export default function CheckoutPage() {
               ),
           }
         );
+if (response.ok) {
+  const result =
+    await response.json();
 
-      if (response.ok) {
-        const result =
-          await response.json();
+  order.id =
+    result.orderId ||
+    order.id;
+} else {
+  const result =
+    await response
+      .json()
+      .catch(() => ({}));
 
-        order.id =
-          result.orderId ||
-          order.id;
-      } else {
-        const error =
-          await response
-            .json()
-            .catch(
-              () => ({})
-            );
-
-        console.error(
-          'Order API error:',
-          error
-        );
-      }
+  throw new Error(
+    result.error ||
+      'Could not place order.'
+  );
+}
+      
     } catch (error) {
-      console.error(
-        'Order API failed:',
-        error
-      );
-    }
+  console.error(
+    'Order API failed:',
+    error
+  );
+
+  alert(
+    error instanceof Error
+      ? error.message
+      : 'Could not place order.'
+  );
+
+  setBusy(false);
+  return;
+}
 
     /*
      * Save to browser store.
