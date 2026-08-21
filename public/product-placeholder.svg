@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 760" role="img" aria-label="Product image unavailable">
+  <rect width="600" height="760" fill="#f2eee5"/>
+  <rect x="145" y="150" width="310" height="390" rx="28" fill="#dfe6d8"/>
+  <path d="M230 245h140l55 75-55 35v230H230V355l-55-35 55-75Z" fill="#78916c" opacity=".75"/>
+  <circle cx="300" cy="205" r="38" fill="#f2eee5"/>
+  <text x="300" y="650" text-anchor="middle" font-family="Arial, sans-serif" font-size="27" fill="#4d453b">Re-upload product photo</text>
+</svg>
