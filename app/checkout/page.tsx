@@ -64,11 +64,14 @@ export default function CheckoutPage() {
   const [userId, setUserId] =
     useState<string | null>(null);
 
+  const [userEmail, setUserEmail] =
+    useState('');
+
   const [authChecked, setAuthChecked] =
     useState(false);
 
   /*
-   * Check logged-in Supabase customer
+   * CHECK LOGGED-IN CUSTOMER
    */
   useEffect(() => {
     const supabase = createClient();
@@ -79,6 +82,7 @@ export default function CheckoutPage() {
       } = await supabase.auth.getUser();
 
       setUserId(user?.id || null);
+      setUserEmail(user?.email || '');
       setAuthChecked(true);
     }
 
@@ -91,6 +95,10 @@ export default function CheckoutPage() {
         setUserId(
           session?.user?.id || null
         );
+
+        setUserEmail(
+          session?.user?.email || ''
+        );
       }
     );
 
@@ -100,7 +108,7 @@ export default function CheckoutPage() {
   }, []);
 
   /*
-   * Totals
+   * ORDER TOTALS
    */
   const subtotal =
     cartProducts.reduce(
@@ -152,14 +160,19 @@ export default function CheckoutPage() {
   );
 
   /*
-   * Payment screenshot preview
+   * QR PAYMENT SCREENSHOT PREVIEW
    */
   function handleProof(file?: File) {
-    if (!file) return;
+    if (!file) {
+      setProof(null);
+      setProofPreview('');
+      return;
+    }
 
     setProof(file);
 
-    const reader = new FileReader();
+    const reader =
+      new FileReader();
 
     reader.onload = () => {
       setProofPreview(
@@ -178,7 +191,24 @@ export default function CheckoutPage() {
   ) {
     event.preventDefault();
 
+    /*
+     * IMPORTANT FIX:
+     *
+     * Read the HTML form BEFORE any await.
+     * event.currentTarget may no longer be
+     * available after asynchronous calls.
+     */
+    const formElement =
+      event.currentTarget;
+
+    const form =
+      new FormData(formElement);
+
+    /*
+     * Basic validation
+     */
     if (!cartProducts.length) {
+      alert('Your cart is empty.');
       return;
     }
 
@@ -193,46 +223,85 @@ export default function CheckoutPage() {
       return;
     }
 
-    const supabase =
-      createClient();
-
-    /*
-     * Get real logged-in Supabase session.
-     * We need the access token for /api/orders.
-     */
-    const {
-      data: { session },
-      error: sessionError,
-    } =
-      await supabase.auth.getSession();
-
-    if (
-      sessionError ||
-      !session ||
-      !session.access_token
-    ) {
-      alert(
-        'Your login session has expired. Please login again.'
-      );
-
-      window.location.href =
-        '/login';
-
-      return;
-    }
-
     setBusy(true);
 
-    const form =
-      new FormData(
-        event.currentTarget
-      );
-
-    let proofUrl = '';
-
     try {
+      const supabase =
+        createClient();
+
       /*
-       * QR payment proof upload
+       * Get logged-in Supabase session
+       */
+      const {
+        data: { session },
+        error: sessionError,
+      } =
+        await supabase.auth.getSession();
+
+      if (
+        sessionError ||
+        !session ||
+        !session.access_token
+      ) {
+        alert(
+          'Your login session has expired. Please login again.'
+        );
+
+        window.location.href =
+          '/login';
+
+        return;
+      }
+
+      /*
+       * READ CUSTOMER INFORMATION
+       *
+       * We use the FormData that was
+       * created BEFORE the await above.
+       */
+      const customer = {
+        name: String(
+          form.get('name') || ''
+        ).trim(),
+
+        email: String(
+          form.get('email') || ''
+        ).trim(),
+
+        phone: String(
+          form.get('phone') || ''
+        ).trim(),
+
+        address: String(
+          form.get('address') || ''
+        ).trim(),
+
+        city: String(
+          form.get('city') || ''
+        ).trim(),
+
+        postalCode: String(
+          form.get('postalCode') || ''
+        ).trim(),
+      };
+
+      if (
+        !customer.name ||
+        !customer.email ||
+        !customer.phone ||
+        !customer.address ||
+        !customer.city ||
+        !customer.postalCode
+      ) {
+        throw new Error(
+          'Please complete all delivery details.'
+        );
+      }
+
+      let proofUrl = '';
+
+      /*
+       * QR PAYMENT PROOF UPLOAD
        */
       if (
         method === 'QR' &&
@@ -278,7 +347,7 @@ export default function CheckoutPage() {
       }
 
       /*
-       * Build order
+       * CREATE ORDER OBJECT
        */
       const order:
         Order & {
@@ -294,33 +363,7 @@ export default function CheckoutPage() {
         userId:
           session.user.id,
 
-        customer: {
-          name: String(
-            form.get('name') || ''
-          ).trim(),
-
-          email: String(
-            form.get('email') || ''
-          ).trim(),
-
-          phone: String(
-            form.get('phone') || ''
-          ).trim(),
-
-          address: String(
-            form.get('address') || ''
-          ).trim(),
-
-          city: String(
-            form.get('city') || ''
-          ).trim(),
-
-          postalCode: String(
-            form.get(
-              'postalCode'
-            ) || ''
-          ).trim(),
-        },
+        customer,
 
         items:
           cartProducts.map(
@@ -367,8 +410,8 @@ export default function CheckoutPage() {
       };
 
       /*
-       * Prevent infinite
-       * "Placing order..." state.
+       * STOP REQUEST IF SERVER
+       * TAKES LONGER THAN 20 SECONDS
        */
       const controller =
         new AbortController();
@@ -394,10 +437,6 @@ export default function CheckoutPage() {
                 'Content-Type':
                   'application/json',
 
-                /*
-                 * Send logged-in customer token
-                 * to API route.
-                 */
                 Authorization:
                   `Bearer ${session.access_token}`,
               },
@@ -424,6 +463,9 @@ export default function CheckoutPage() {
         );
       }
 
+      /*
+       * READ SERVER RESPONSE
+       */
       const result =
         await response
           .json()
@@ -435,15 +477,27 @@ export default function CheckoutPage() {
           result
         );
 
-        throw new Error(
+        let errorMessage =
           result.error ||
-            'Could not place order.'
+          'Could not place order.';
+
+        if (result.details) {
+          errorMessage +=
+            `\n${result.details}`;
+        }
+
+        if (result.hint) {
+          errorMessage +=
+            `\n${result.hint}`;
+        }
+
+        throw new Error(
+          errorMessage
         );
       }
 
       /*
-       * Replace temporary order ID
-       * with real Supabase order ID.
+       * USE REAL SUPABASE ORDER ID
        */
       if (result.orderId) {
         order.id =
@@ -453,12 +507,16 @@ export default function CheckoutPage() {
       }
 
       /*
-       * Save locally only AFTER
-       * Supabase successfully creates
-       * the order.
+       * UPDATE LOCAL CUSTOMER STATE
+       *
+       * Only do this after Supabase
+       * successfully creates the order.
        */
       placeLocalOrder(order);
 
+      /*
+       * SHOW SUCCESS PAGE
+       */
       setPlaced(order);
 
       window.scrollTo({
@@ -487,16 +545,14 @@ export default function CheckoutPage() {
       }
     } finally {
       /*
-       * Important:
-       * Never leave button stuck at
-       * "Placing order..."
+       * ALWAYS STOP LOADING
        */
       setBusy(false);
     }
   }
 
   /*
-   * Wait for authentication
+   * WAIT FOR AUTH
    */
   if (!authChecked) {
     return (
@@ -505,13 +561,17 @@ export default function CheckoutPage() {
           <h2>
             Loading checkout…
           </h2>
+
+          <p className="muted">
+            Checking your account.
+          </p>
         </div>
       </div>
     );
   }
 
   /*
-   * Require customer login
+   * CUSTOMER MUST LOGIN
    */
   if (!userId) {
     return (
@@ -553,7 +613,7 @@ export default function CheckoutPage() {
   }
 
   /*
-   * ORDER SUCCESS
+   * ORDER SUCCESS PAGE
    */
   if (placed) {
     return (
@@ -572,14 +632,14 @@ export default function CheckoutPage() {
               marginTop: 12,
             }}
           >
-            Order placed.
+            Order placed successfully!
           </h2>
 
           <p>
             {placed.paymentMethod ===
             'QR'
-              ? 'Your payment proof was submitted. The order is now Payment Verification Required until the admin approves it.'
-              : 'Your COD order is Pending and will move to Processing after review.'}
+              ? 'Your payment proof has been submitted successfully. Your payment is now waiting for admin verification.'
+              : 'Your Cash on Delivery order has been placed successfully and is now Pending.'}
           </p>
 
           <div
@@ -590,10 +650,10 @@ export default function CheckoutPage() {
             }}
           >
             <Link
-              className="btn"
+              className="btn sage"
               href="/account/orders"
             >
-              View order
+              View my order
             </Link>
 
             <Link
@@ -632,6 +692,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="container">
+      {/* PAGE HEADER */}
+
       <div className="page-hero">
         <span className="eyebrow">
           Almost yours
@@ -670,6 +732,7 @@ export default function CheckoutPage() {
                 <input
                   className="control"
                   name="name"
+                  autoComplete="name"
                   required
                 />
               </div>
@@ -684,8 +747,9 @@ export default function CheckoutPage() {
                   name="email"
                   type="email"
                   defaultValue={
-                    sessionEmailFallback()
+                    userEmail
                   }
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -698,6 +762,8 @@ export default function CheckoutPage() {
                 <input
                   className="control"
                   name="phone"
+                  type="tel"
+                  autoComplete="tel"
                   required
                 />
               </div>
@@ -710,6 +776,7 @@ export default function CheckoutPage() {
                 <input
                   className="control"
                   name="address"
+                  autoComplete="street-address"
                   required
                 />
               </div>
@@ -722,6 +789,7 @@ export default function CheckoutPage() {
                 <input
                   className="control"
                   name="city"
+                  autoComplete="address-level2"
                   required
                 />
               </div>
@@ -734,6 +802,7 @@ export default function CheckoutPage() {
                 <input
                   className="control"
                   name="postalCode"
+                  autoComplete="postal-code"
                   required
                 />
               </div>
@@ -823,6 +892,8 @@ export default function CheckoutPage() {
                 </label>
               )}
             </div>
+
+            {/* QR PAYMENT */}
 
             {method === 'QR' && (
               <div className="qr-box">
@@ -960,6 +1031,8 @@ export default function CheckoutPage() {
             }}
           />
 
+          {/* PROMO */}
+
           <div className="field">
             <label>
               Promo code
@@ -998,6 +1071,8 @@ export default function CheckoutPage() {
               </small>
             )}
           </div>
+
+          {/* TOTALS */}
 
           <div className="summary-row">
             <span>
@@ -1043,6 +1118,8 @@ export default function CheckoutPage() {
             </span>
           </div>
 
+          {/* PLACE ORDER BUTTON */}
+
           <button
             type="submit"
             disabled={
@@ -1071,21 +1148,11 @@ export default function CheckoutPage() {
             }}
           >
             By ordering, you agree
-            to the store’s shipping
+            to the store&apos;s shipping
             and return policy.
           </p>
         </aside>
       </form>
     </div>
   );
-}
-
-/*
- * Kept simple because the checkout
- * already verifies the Supabase user.
- * You can later pre-fill email/name
- * from the Supabase profile.
- */
-function sessionEmailFallback() {
-  return '';
 }
