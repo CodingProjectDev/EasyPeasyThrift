@@ -2,12 +2,13 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [mode, setMode] = useState<'login' | 'signup'>('signup');
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -26,6 +27,7 @@ export default function LoginPage() {
     const supabase = createClient();
 
     try {
+      // SIGN UP
       if (mode === 'signup') {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -46,26 +48,34 @@ export default function LoginPage() {
         }
 
         if (data.user) {
-          setMessage(
-            `Account created successfully: ${data.user.email}`
-          );
-
-          // If email confirmation is OFF,
-          // Supabase returns a session immediately.
+          // Email confirmation OFF
           if (data.session) {
+            setMessage('Account created successfully.');
+
             setTimeout(() => {
               router.push('/account/orders');
               router.refresh();
             }, 700);
+
+            return;
           }
+
+          // Email confirmation ON
+          setMessage(
+            'Account created. Please check your email to confirm your account.'
+          );
 
           return;
         }
 
-        setMessage('Signup finished, but no user was returned.');
+        setMessage(
+          'Signup finished, but no user was returned.'
+        );
+
         return;
       }
 
+      // LOGIN
       const { data, error } =
         await supabase.auth.signInWithPassword({
           email,
@@ -182,6 +192,28 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* Forgot Password */}
+          {mode === 'login' && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                marginTop: -4,
+              }}
+            >
+              <Link
+                href="/forgot-password"
+                style={{
+                  fontSize: '0.84rem',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
           <button
             className="btn sage"
             type="submit"
@@ -206,6 +238,53 @@ export default function LoginPage() {
             </div>
           )}
         </form>
+
+        <div
+          style={{
+            marginTop: 20,
+            textAlign: 'center',
+          }}
+        >
+          {mode === 'login' ? (
+            <p className="muted">
+              Don&apos;t have an account?{' '}
+              <button
+                type="button"
+                onClick={() => switchMode('signup')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  fontWeight: 700,
+                  textDecoration: 'underline',
+                }}
+              >
+                Create one
+              </button>
+            </p>
+          ) : (
+            <p className="muted">
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  fontWeight: 700,
+                  textDecoration: 'underline',
+                }}
+              >
+                Login
+              </button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
