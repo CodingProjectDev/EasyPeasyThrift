@@ -1,0 +1,58 @@
+-- EasyPeasyThrift production catalog fix
+-- Run this in Supabase SQL Editor AFTER the repository's supabase/schema.sql.
+--
+-- Why:
+-- The original storefront/admin stored product records in browser localStorage,
+-- while checkout validates product IDs against public.products.
+-- This patch adds the TikTok field used by the updated admin product API and
+-- seeds the demo catalog so the included demo products have real database UUIDs.
+
+alter table public.products
+add column if not exists tiktok_url text;
+
+-- Ensure the public catalog policy still exists.
+alter table public.products enable row level security;
+
+drop policy if exists "public can view active products" on public.products;
+create policy "public can view active products"
+on public.products
+for select
+using (active = true or public.is_admin(auth.uid()));
+
+-- Demo catalog matching lib/demo-data.ts.
+-- Safe to run repeatedly.
+insert into public.products
+(id,slug,name,price,compare_at,category,size,condition,brand,measurements,description,images,inventory,one_of_one,new_arrival,vintage_find,featured,active)
+values
+('11111111-1111-4111-8111-111111111111','90s-leather-bomber','90s Leather Bomber',68,92,'Jackets','M','Excellent','Vintage','{"Chest":"22 in","Length":"25 in","Sleeve":"24 in"}','Soft broken-in leather bomber with a relaxed 90s silhouette, ribbed trim, and clean lining. A true one-off statement layer.',array['https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=1200&q=85'],1,true,false,true,true,true),
+('22222222-2222-4222-8222-222222222222','sage-workwear-overshirt','Sage Workwear Overshirt',42,null,'Tops','L','Like New','Uniqlo U','{"Chest":"23 in","Length":"28 in","Shoulder":"19 in"}','Structured cotton overshirt in muted sage. Easy to layer, minimal branding, and clean utility details.',array['https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=1200&q=85'],1,true,true,false,true,true),
+('33333333-3333-4333-8333-333333333333','washed-straight-denim','Washed Straight Denim',36,null,'Denim','32','Excellent','Levi''s','{"Waist":"32 in","Rise":"11 in","Inseam":"30 in"}','Classic straight-leg denim with a naturally faded blue wash and soft vintage feel.',array['https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=1200&q=85'],1,true,true,false,false,true),
+('44444444-4444-4444-8444-444444444444','floral-midi-dress','Floral Midi Dress',34,null,'Dresses','S','Like New','Zara','{"Bust":"18 in","Waist":"15 in","Length":"46 in"}','Flowy floral midi with a flattering waist and soft drape. Lightweight and ready for late-summer days.',array['https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=85'],1,true,true,false,true,true),
+('55555555-5555-4555-8555-555555555555','brown-corduroy-jacket','Brown Corduroy Jacket',48,null,'Jackets','M','Good','Gap','{"Chest":"21.5 in","Length":"26 in","Sleeve":"23.5 in"}','Warm brown corduroy with visible vintage character and a boxy fit. Minor wear adds to the texture.',array['https://images.unsplash.com/photo-1592878849122-facb97520f9e?auto=format&fit=crop&w=1200&q=85'],1,true,false,true,false,true),
+('66666666-6666-4666-8666-666666666666','graphic-tour-tee','Faded Graphic Tour Tee',28,null,'Tops','XL','Good','Vintage','{"Chest":"24 in","Length":"29 in"}','Authentic worn-in graphic tee with a soft hand, natural fade, and relaxed oversized shape.',array['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=85'],0,true,false,true,false,true),
+('77777777-7777-4777-8777-777777777777','pleated-trousers','Pleated Everyday Trousers',39,null,'Bottoms','30','Excellent','COS','{"Waist":"30 in","Rise":"12 in","Inseam":"29 in"}','Relaxed pleated trousers with clean tailoring and an easy tapered leg.',array['https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=1200&q=85'],1,true,false,false,true,true),
+('88888888-8888-4888-8888-888888888888','mini-shoulder-bag','Chocolate Mini Shoulder Bag',31,null,'Accessories','One Size','Excellent','Mango','{"Width":"10 in","Height":"6 in","Strap":"18 in"}','Compact chocolate-brown shoulder bag with a clean shape and minimal hardware.',array['https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=1200&q=85'],1,true,true,false,false,true),
+('99999999-9999-4999-8999-999999999999','cream-knit-cardigan','Cream Knit Cardigan',33,null,'Tops','M','Excellent','& Other Stories','{"Chest":"20 in","Length":"23 in","Sleeve":"24 in"}','Soft cream cardigan with a slightly cropped fit and substantial knit texture.',array['https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=1200&q=85'],1,true,false,false,true,true),
+('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','vintage-silk-scarf','Vintage Silk Scarf',19,null,'Accessories','One Size','Good','Unbranded','{"Width":"27 in","Length":"27 in"}','Printed square scarf with warm earth tones and a soft silk hand. Light vintage wear at edges.',array['https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=1200&q=85'],1,true,false,true,false,true)
+on conflict(id) do update set
+  slug=excluded.slug,
+  name=excluded.name,
+  price=excluded.price,
+  compare_at=excluded.compare_at,
+  category=excluded.category,
+  size=excluded.size,
+  condition=excluded.condition,
+  brand=excluded.brand,
+  measurements=excluded.measurements,
+  description=excluded.description,
+  images=excluded.images,
+  one_of_one=excluded.one_of_one,
+  new_arrival=excluded.new_arrival,
+  vintage_find=excluded.vintage_find,
+  featured=excluded.featured,
+  active=excluded.active;
+
+-- Quick verification.
+select id, name, inventory, active
+from public.products
+order by created_at desc;

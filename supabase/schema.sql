@@ -43,6 +43,7 @@ create table if not exists public.products (
   vintage_find boolean not null default false,
   featured boolean not null default false,
   active boolean not null default true,
+  tiktok_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint one_of_one_stock check (not one_of_one or inventory <= 1)
