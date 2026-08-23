@@ -1,19 +1,592 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { Search, SlidersHorizontal } from 'lucide-react';
+
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+import {
+  Search,
+  SlidersHorizontal,
+} from 'lucide-react';
+
+import { useSearchParams } from 'next/navigation';
+
 import ProductGrid from '@/components/product-grid';
 import { useStore } from '@/components/store-provider';
 
-export default function ShopPage(){
-  const { products }=useStore();
-  const [q,setQ]=useState(''); const [category,setCategory]=useState('All'); const [size,setSize]=useState('All'); const [condition,setCondition]=useState('All'); const [brand,setBrand]=useState('All'); const [maxPrice,setMaxPrice]=useState(100); const [sort,setSort]=useState('featured'); const [showFilters,setShowFilters]=useState(false); const [badge,setBadge]=useState<string|null>(null);
-  useEffect(()=>{const params=new URLSearchParams(window.location.search);setCategory(params.get('category')||'All');setSort(params.get('sort')||'featured');setBadge(params.get('badge'))},[]);
-  const brands=Array.from(new Set(products.map(p=>p.brand))).sort(); const sizes=Array.from(new Set(products.map(p=>p.size)));
-  const categories=Array.from(new Set(products.map(p=>p.category).filter(Boolean))).sort();
-  const filtered=useMemo(()=>{
-    let list=products.filter(p=>p.price<=maxPrice && (category==='All'||p.category===category) && (size==='All'||p.size===size) && (condition==='All'||p.condition===condition) && (brand==='All'||p.brand===brand) && (!badge || (badge==='vintage'&&p.vintageFind)) && `${p.name} ${p.brand} ${p.category}`.toLowerCase().includes(q.toLowerCase()));
-    if(sort==='price-low') list.sort((a,b)=>a.price-b.price); if(sort==='price-high') list.sort((a,b)=>b.price-a.price); if(sort==='newest') list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)); if(sort==='featured') list.sort((a,b)=>Number(b.featured)-Number(a.featured)); return list;
-  },[products,q,category,size,condition,brand,maxPrice,sort,badge]);
-  const filters=<div className="filter-panel" style={showFilters?{display:'block',position:'static',marginBottom:18}:{}}><div className="filter-group"><h4>Category</h4><select className="control" value={category} onChange={e=>setCategory(e.target.value)}><option>All</option>{categories.map(x=><option key={x}>{x}</option>)}</select></div><div className="filter-group"><h4>Price up to</h4><input type="range" min="0" max="100000" value={maxPrice} onChange={e=>setMaxPrice(Number(e.target.value))} style={{width:'100%'}}/><label>Rs. {maxPrice}</label></div><div className="filter-group"><h4>Size</h4><select className="control" value={size} onChange={e=>setSize(e.target.value)}><option>All</option>{sizes.map(x=><option key={x}>{x}</option>)}</select></div><div className="filter-group"><h4>Condition</h4><select className="control" value={condition} onChange={e=>setCondition(e.target.value)}><option>All</option>{['Like New','Excellent','Good','Fair'].map(x=><option key={x}>{x}</option>)}</select></div><div className="filter-group"><h4>Brand</h4><select className="control" value={brand} onChange={e=>setBrand(e.target.value)}><option>All</option>{brands.map(x=><option key={x}>{x}</option>)}</select></div><button className="btn ghost" style={{width:'100%'}} onClick={()=>{setCategory('All');setSize('All');setCondition('All');setBrand('All');setMaxPrice(100);setQ('')}}>Clear filters</button></div>;
-  return <div className="container"><div className="page-hero"><span className="eyebrow">The rack is open</span><h1>Shop all finds.</h1><p>Each item is photographed, measured, and condition-checked. One-of-one means exactly that—once it sells, it’s gone.</p></div><div className="shop-layout">{filters}<div><div className="shop-topbar"><div className="search-wrap"><Search size={18}/><input className="control" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search pieces, brands, categories..."/></div><button className="btn ghost mobile-filter" onClick={()=>setShowFilters(v=>!v)}><SlidersHorizontal size={17}/> Filters</button><select className="control" style={{maxWidth:200}} value={sort} onChange={e=>setSort(e.target.value)}><option value="featured">Featured</option><option value="newest">Newest</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></div>{showFilters&&filters}<div className="result-count">{filtered.length} pieces</div>{filtered.length?<ProductGrid products={filtered}/>:<div className="empty-state"><h3>No pieces match that mix.</h3><p>Try clearing a filter or searching a broader term.</p></div>}</div></div></div>
+const MAX_PRICE = 100000;
+
+function ShopContent() {
+  const { products } = useStore();
+
+  const searchParams = useSearchParams();
+
+  const urlCategory =
+    searchParams.get('category') || '';
+
+  const [q, setQ] = useState('');
+
+  const [category, setCategory] =
+    useState(urlCategory || 'All');
+
+  const [size, setSize] =
+    useState('All');
+
+  const [condition, setCondition] =
+    useState('All');
+
+  const [brand, setBrand] =
+    useState('All');
+
+  const [maxPrice, setMaxPrice] =
+    useState(MAX_PRICE);
+
+  const [sort, setSort] =
+    useState('featured');
+
+  const [showFilters, setShowFilters] =
+    useState(false);
+
+  /*
+   * Keep category synchronized with
+   * header navigation.
+   *
+   * /shop
+   * /shop?category=Brand%20New%20Product
+   * /shop?category=Used%20Product
+   */
+  useEffect(() => {
+    setCategory(
+      urlCategory || 'All'
+    );
+  }, [urlCategory]);
+
+  /*
+   * UNIQUE FILTER VALUES
+   */
+  const brands = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => product.brand)
+            .filter(Boolean)
+        )
+      ).sort(),
+    [products]
+  );
+
+  const sizes = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => product.size)
+            .filter(Boolean)
+        )
+      ).sort(),
+    [products]
+  );
+
+  const categories = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => product.category)
+            .filter(Boolean)
+        )
+      ).sort(),
+    [products]
+  );
+
+  /*
+   * FILTER PRODUCTS
+   */
+  const filtered = useMemo(() => {
+    const search =
+      q.trim().toLowerCase();
+
+    const list = products.filter(
+      (product) => {
+        const matchesPrice =
+          product.price <= maxPrice;
+
+        const matchesCategory =
+          category === 'All' ||
+          product.category
+            .toLowerCase() ===
+            category.toLowerCase();
+
+        const matchesSize =
+          size === 'All' ||
+          product.size === size;
+
+        const matchesCondition =
+          condition === 'All' ||
+          product.condition ===
+            condition;
+
+        const matchesBrand =
+          brand === 'All' ||
+          product.brand === brand;
+
+        const searchableText =
+          `${product.name} ${product.brand} ${product.category}`
+            .toLowerCase();
+
+        const matchesSearch =
+          !search ||
+          searchableText.includes(
+            search
+          );
+
+        return (
+          matchesPrice &&
+          matchesCategory &&
+          matchesSize &&
+          matchesCondition &&
+          matchesBrand &&
+          matchesSearch
+        );
+      }
+    );
+
+    /*
+     * Never sort the original
+     * products array directly.
+     */
+    const sorted = [...list];
+
+    if (sort === 'price-low') {
+      sorted.sort(
+        (a, b) =>
+          a.price - b.price
+      );
+    }
+
+    if (sort === 'price-high') {
+      sorted.sort(
+        (a, b) =>
+          b.price - a.price
+      );
+    }
+
+    if (sort === 'newest') {
+      sorted.sort((a, b) =>
+        b.createdAt.localeCompare(
+          a.createdAt
+        )
+      );
+    }
+
+    if (sort === 'featured') {
+      sorted.sort(
+        (a, b) =>
+          Number(b.featured) -
+          Number(a.featured)
+      );
+    }
+
+    return sorted;
+  }, [
+    products,
+    q,
+    category,
+    size,
+    condition,
+    brand,
+    maxPrice,
+    sort,
+  ]);
+
+  /*
+   * CLEAR FILTERS
+   *
+   * If customer came from
+   * "Brand New Product" or
+   * "Used Product", keep that
+   * category selected.
+   */
+  function clearFilters() {
+    setCategory(
+      urlCategory || 'All'
+    );
+
+    setSize('All');
+    setCondition('All');
+    setBrand('All');
+    setMaxPrice(MAX_PRICE);
+    setQ('');
+    setSort('featured');
+  }
+
+  /*
+   * PAGE HEADING
+   */
+  let eyebrow =
+    'The rack is open';
+
+  let title =
+    'Shop all finds.';
+
+  let description =
+    'Browse every available product in the store. Each item is photographed, measured, and condition-checked.';
+
+  if (
+    urlCategory.toLowerCase() ===
+    'brand new product'
+  ) {
+    eyebrow =
+      'Fresh from the rack';
+
+    title =
+      'Brand New Products.';
+
+    description =
+      'Shop brand new products available in our store.';
+  }
+
+  if (
+    urlCategory.toLowerCase() ===
+    'used product'
+  ) {
+    eyebrow =
+      'Secondhand finds';
+
+    title =
+      'Used Products.';
+
+    description =
+      'Shop pre-loved and used products ready for their next story.';
+  }
+
+  /*
+   * FILTER PANEL
+   */
+  const filters = (
+    <div
+      className="filter-panel"
+      style={
+        showFilters
+          ? {
+              display: 'block',
+              position: 'static',
+              marginBottom: 18,
+            }
+          : {}
+      }
+    >
+      {/* CATEGORY */}
+
+      <div className="filter-group">
+        <h4>Category</h4>
+
+        <select
+          className="control"
+          value={category}
+          onChange={(event) =>
+            setCategory(
+              event.target.value
+            )
+          }
+        >
+          <option value="All">
+            All
+          </option>
+
+          {categories.map(
+            (item) => (
+              <option
+                key={item}
+                value={item}
+              >
+                {item}
+              </option>
+            )
+          )}
+        </select>
+      </div>
+
+      {/* PRICE */}
+
+      <div className="filter-group">
+        <h4>Price up to</h4>
+
+        <input
+          type="range"
+          min="0"
+          max={MAX_PRICE}
+          step="100"
+          value={maxPrice}
+          onChange={(event) =>
+            setMaxPrice(
+              Number(
+                event.target.value
+              )
+            )
+          }
+          style={{
+            width: '100%',
+          }}
+        />
+
+        <label>
+          Rs.{' '}
+          {maxPrice.toLocaleString()}
+        </label>
+      </div>
+
+      {/* SIZE */}
+
+      <div className="filter-group">
+        <h4>Size</h4>
+
+        <select
+          className="control"
+          value={size}
+          onChange={(event) =>
+            setSize(
+              event.target.value
+            )
+          }
+        >
+          <option value="All">
+            All
+          </option>
+
+          {sizes.map((item) => (
+            <option
+              key={item}
+              value={item}
+            >
+              {item}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* CONDITION */}
+
+      <div className="filter-group">
+        <h4>Condition</h4>
+
+        <select
+          className="control"
+          value={condition}
+          onChange={(event) =>
+            setCondition(
+              event.target.value
+            )
+          }
+        >
+          <option value="All">
+            All
+          </option>
+
+          {[
+            'Like New',
+            'Excellent',
+            'Good',
+            'Fair',
+          ].map((item) => (
+            <option
+              key={item}
+              value={item}
+            >
+              {item}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* BRAND */}
+
+      <div className="filter-group">
+        <h4>Brand</h4>
+
+        <select
+          className="control"
+          value={brand}
+          onChange={(event) =>
+            setBrand(
+              event.target.value
+            )
+          }
+        >
+          <option value="All">
+            All
+          </option>
+
+          {brands.map((item) => (
+            <option
+              key={item}
+              value={item}
+            >
+              {item}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* CLEAR */}
+
+      <button
+        type="button"
+        className="btn ghost"
+        style={{
+          width: '100%',
+        }}
+        onClick={clearFilters}
+      >
+        Clear filters
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="container">
+      {/* HERO */}
+
+      <div className="page-hero">
+        <span className="eyebrow">
+          {eyebrow}
+        </span>
+
+        <h1>{title}</h1>
+
+        <p>{description}</p>
+      </div>
+
+      <div className="shop-layout">
+        {/* DESKTOP FILTER */}
+
+        {filters}
+
+        <div>
+          {/* TOP BAR */}
+
+          <div className="shop-topbar">
+            <div className="search-wrap">
+              <Search size={18} />
+
+              <input
+                className="control"
+                value={q}
+                onChange={(event) =>
+                  setQ(
+                    event.target.value
+                  )
+                }
+                placeholder="Search products, brands, categories..."
+              />
+            </div>
+
+            {/* MOBILE FILTER BUTTON */}
+
+            <button
+              type="button"
+              className="btn ghost mobile-filter"
+              onClick={() =>
+                setShowFilters(
+                  (value) => !value
+                )
+              }
+            >
+              <SlidersHorizontal
+                size={17}
+              />
+
+              Filters
+            </button>
+
+            {/* SORT */}
+
+            <select
+              className="control"
+              style={{
+                maxWidth: 200,
+              }}
+              value={sort}
+              onChange={(event) =>
+                setSort(
+                  event.target.value
+                )
+              }
+            >
+              <option value="featured">
+                Featured
+              </option>
+
+              <option value="newest">
+                Newest
+              </option>
+
+              <option value="price-low">
+                Price: low to high
+              </option>
+
+              <option value="price-high">
+                Price: high to low
+              </option>
+            </select>
+          </div>
+
+          {/* MOBILE FILTER */}
+
+          {showFilters && filters}
+
+          {/* RESULT COUNT */}
+
+          <div className="result-count">
+            {filtered.length}{' '}
+            {filtered.length === 1
+              ? 'product'
+              : 'products'}
+          </div>
+
+          {/* PRODUCTS */}
+
+          {filtered.length > 0 ? (
+            <ProductGrid
+              products={filtered}
+            />
+          ) : (
+            <div className="empty-state">
+              <h3>
+                No products found.
+              </h3>
+
+              <p>
+                Try clearing a filter
+                or searching a broader
+                term.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container content-page">
+          <div className="empty-state">
+            <h3>
+              Loading products…
+            </h3>
+          </div>
+        </div>
+      }
+    >
+      <ShopContent />
+    </Suspense>
+  );
 }
