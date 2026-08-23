@@ -24,7 +24,6 @@ const KEYS = {
   orders: 'easypeasy_orders',
   recent: 'easypeasy_recent',
   promos: 'easypeasy_promos',
-  settings: 'easypeasy_settings',
 };
 
 export type StoreSettings = {
@@ -32,13 +31,20 @@ export type StoreSettings = {
   tagline: string;
   storeEmail: string;
   storePhone: string;
-  shippingFee: number;
-  freeShippingThreshold: number;
+
+  // Customer-facing shipping text, e.g. "Depends on product and location".
+  shippingInfo: string;
+
   returnPolicy: string;
   codEnabled: boolean;
   qrEnabled: boolean;
   qrImage?: string;
   logoImage?: string;
+
+  // Kept only for compatibility with older pages/database columns.
+  // They are no longer shown in Admin Settings or used by checkout.
+  shippingFee: number;
+  freeShippingThreshold: number;
 };
 
 const defaultSettings: StoreSettings = {
@@ -46,13 +52,14 @@ const defaultSettings: StoreSettings = {
   tagline: 'Secondhand. Standout. So Easy.',
   storeEmail: 'hello@easypeasy-thrift.example',
   storePhone: '',
-  shippingFee: 6,
-  freeShippingThreshold: 75,
+  shippingInfo: 'Depends on product and location',
   returnPolicy:
-    'Returns are accepted within 7 days for items that differ materially from their listed condition.',
+    'Please make sure you check the item carefully before purchasing. By completing your purchase, you agree to this return policy.\n\nThank you for your understanding and support! ❤️',
   codEnabled: true,
   qrEnabled: true,
   qrImage: '/store-qr.png',
+  shippingFee: 0,
+  freeShippingThreshold: 0,
 };
 
 const defaultPromos: PromoCode[] = [
@@ -94,7 +101,7 @@ type StoreContextValue = {
   deleteProduct: (id: string) => void;
 
   savePromos: (promos: PromoCode[]) => void;
-  saveSettings: (settings: StoreSettings) => void;
+  saveSettings: (settings: StoreSettings) => Promise<void>;
 };
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -114,21 +121,60 @@ function customerKey(base: string, userId: string | null) {
   return `${base}_${userId || 'guest'}`;
 }
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
+function settingsFromRow(row: any): StoreSettings {
+  return {
+    storeName: String(row?.store_name || defaultSettings.storeName),
+    tagline: String(row?.tagline || defaultSettings.tagline),
+    storeEmail: String(row?.store_email || ''),
+    storePhone: String(row?.store_phone || ''),
+    shippingInfo: String(
+      row?.shipping_info ||
+        defaultSettings.shippingInfo,
+    ),
+    returnPolicy: String(
+      row?.return_policy ||
+        defaultSettings.returnPolicy,
+    ),
+    codEnabled:
+      typeof row?.cod_enabled === 'boolean'
+        ? row.cod_enabled
+        : defaultSettings.codEnabled,
+    qrEnabled:
+      typeof row?.qr_enabled === 'boolean'
+        ? row.qr_enabled
+        : defaultSettings.qrEnabled,
+    qrImage: row?.qr_image_path
+      ? String(row.qr_image_path)
+      : defaultSettings.qrImage,
+    logoImage: row?.logo_path
+      ? String(row.logo_path)
+      : undefined,
+
+    // Legacy numeric fields. Shipping is now confirmed separately.
+    shippingFee: 0,
+    freeShippingThreshold: 0,
+  };
+}
+
+export function StoreProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [ready, setReady] = useState(false);
-  const [customerUserId, setCustomerUserId] = useState<string | null>(null);
+  const [customerUserId, setCustomerUserId] =
+    useState<string | null>(null);
 
-  // IMPORTANT:
-  // Products now come only from Supabase.
-  // No demoProducts/localStorage product fallback.
+  // Products come only from Supabase.
   const [products, setProducts] = useState<Product[]>([]);
-
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
-  const [promos, setPromos] = useState<PromoCode[]>(defaultPromos);
-  const [settings, setSettings] = useState<StoreSettings>(defaultSettings);
+  const [promos, setPromos] =
+    useState<PromoCode[]>(defaultPromos);
+  const [settings, setSettings] =
+    useState<StoreSettings>(defaultSettings);
 
   useEffect(() => {
     const supabase = createClient();
@@ -137,7 +183,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setOrders(load(KEYS.orders, []));
     setRecent(load(KEYS.recent, []));
     setPromos(load(KEYS.promos, defaultPromos));
-    setSettings(load(KEYS.settings, defaultSettings));
 
     async function refreshProducts() {
       const { data, error } = await supabase
@@ -149,7 +194,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       if (error) {
-        console.error('Could not load products from Supabase:', error.message);
+        console.error(
+          'Could not load products from Supabase:',
+          error.message,
+        );
         setProducts([]);
         return;
       }
@@ -157,8 +205,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setProducts((data || []).map(productFromRow));
     }
 
+    async function refreshSettings() {
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      if (error) {
+        console.error(
+          'Could not load store settings from Supabase:',
+          error.message,
+        );
+        setSettings(defaultSettings);
+        return;
+      }
+
+      if (data) {
+        setSettings(settingsFromRow(data));
+      }
+    }
+
     async function boot() {
-      await refreshProducts();
+      await Promise.all([
+        refreshProducts(),
+        refreshSettings(),
+      ]);
 
       const {
         data: { user },
@@ -167,10 +241,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       const id = user?.id || null;
-
       setCustomerUserId(id);
       setCart(load(customerKey(KEYS.cart, id), []));
-      setWishlist(load(customerKey(KEYS.wishlist, id), []));
+      setWishlist(
+        load(customerKey(KEYS.wishlist, id), []),
+      );
       setReady(true);
     }
 
@@ -178,16 +253,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const id = session?.user?.id || null;
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const id = session?.user?.id || null;
 
-      setCustomerUserId(id);
-      setCart(load(customerKey(KEYS.cart, id), []));
-      setWishlist(load(customerKey(KEYS.wishlist, id), []));
-    });
+        setCustomerUserId(id);
+        setCart(load(customerKey(KEYS.cart, id), []));
+        setWishlist(
+          load(customerKey(KEYS.wishlist, id), []),
+        );
+      },
+    );
 
-    // Keep Admin and shopper catalog in sync when Supabase Realtime
-    // is enabled for the products table.
     const productsChannel = supabase
       .channel('easypeasy-products-sync')
       .on(
@@ -203,10 +280,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       )
       .subscribe();
 
-    // Also refresh when the user returns to the tab/window.
-    // This makes catalog changes appear even if Realtime is not enabled.
+    const settingsChannel = supabase
+      .channel('easypeasy-settings-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'store_settings',
+        },
+        () => {
+          void refreshSettings();
+        },
+      )
+      .subscribe();
+
     function handleFocus() {
       void refreshProducts();
+      void refreshSettings();
     }
 
     window.addEventListener('focus', handleFocus);
@@ -216,18 +307,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       authSubscription.unsubscribe();
       window.removeEventListener('focus', handleFocus);
       void supabase.removeChannel(productsChannel);
+      void supabase.removeChannel(settingsChannel);
     };
   }, []);
 
   useEffect(() => {
     if (ready) {
-      localStorage.setItem(KEYS.orders, JSON.stringify(orders));
+      localStorage.setItem(
+        KEYS.orders,
+        JSON.stringify(orders),
+      );
     }
   }, [orders, ready]);
 
   useEffect(() => {
     if (ready) {
-      localStorage.setItem(KEYS.recent, JSON.stringify(recent));
+      localStorage.setItem(
+        KEYS.recent,
+        JSON.stringify(recent),
+      );
     }
   }, [recent, ready]);
 
@@ -260,7 +358,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             item.productId === id
               ? {
                   ...item,
-                  quantity: Math.min(item.quantity + 1, product.inventory),
+                  quantity: Math.min(
+                    item.quantity + 1,
+                    product.inventory,
+                  ),
                 }
               : item,
           )
@@ -269,7 +370,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((item) => item.productId !== id));
+    setCart((prev) =>
+      prev.filter((item) => item.productId !== id),
+    );
   };
 
   const updateQty = (id: string, qty: number) => {
@@ -287,37 +390,49 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         item.productId === id
           ? {
               ...item,
-              quantity: Math.min(qty, product.inventory),
+              quantity: Math.min(
+                qty,
+                product.inventory,
+              ),
             }
           : item,
       ),
     );
   };
 
-  const clearCart = () => {
-    setCart([]);
-  };
+  const clearCart = () => setCart([]);
 
   const toggleWishlist = (id: string) => {
     setWishlist((prev) =>
       prev.includes(id)
-        ? prev.filter((productId) => productId !== id)
+        ? prev.filter(
+            (productId) => productId !== id,
+          )
         : [...prev, id],
     );
   };
 
   const recordRecent = (id: string) => {
-    setRecent((prev) => [id, ...prev.filter((productId) => productId !== id)].slice(0, 6));
+    setRecent((prev) =>
+      [
+        id,
+        ...prev.filter(
+          (productId) => productId !== id,
+        ),
+      ].slice(0, 6),
+    );
   };
 
   const placeLocalOrder = (order: Order) => {
     setOrders((prev) => [order, ...prev]);
 
-    // The Supabase place_order RPC already changes database inventory.
-    // This only updates the current browser immediately.
+    // Supabase RPC already decrements database inventory.
+    // This updates the current browser immediately.
     setProducts((prev) =>
       prev.map((product) => {
-        const line = order.items.find((item) => item.productId === product.id);
+        const line = order.items.find(
+          (item) => item.productId === product.id,
+        );
 
         if (!line) return product;
 
@@ -325,7 +440,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ...product,
           inventory: product.oneOfOne
             ? 0
-            : Math.max(0, product.inventory - line.quantity),
+            : Math.max(
+                0,
+                product.inventory - line.quantity,
+              ),
         };
       }),
     );
@@ -333,8 +451,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setCart([]);
   };
 
-  const updateOrderStatus = (id: string, status: OrderStatus) => {
-    const current = orders.find((order) => order.id === id);
+  const updateOrderStatus = (
+    id: string,
+    status: OrderStatus,
+  ) => {
+    const current = orders.find(
+      (order) => order.id === id,
+    );
 
     if (
       current &&
@@ -345,7 +468,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setProducts((prev) =>
         prev.map((product) => {
           const line = current.items.find(
-            (item) => item.productId === product.id,
+            (item) =>
+              item.productId === product.id,
           );
 
           if (!line) return product;
@@ -363,51 +487,89 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setOrders((prev) =>
       prev.map((order) =>
         order.id === id
-          ? {
-              ...order,
-              status,
-            }
+          ? { ...order, status }
           : order,
       ),
     );
   };
 
-  // These update the current UI immediately after the Admin API
-  // successfully saves/deletes the real Supabase product.
   const addProduct = (product: Product) => {
     setProducts((prev) => [
       product,
-      ...prev.filter((item) => item.id !== product.id),
+      ...prev.filter(
+        (item) => item.id !== product.id,
+      ),
     ]);
   };
 
   const updateProduct = (product: Product) => {
     setProducts((prev) =>
-      prev.map((item) => (item.id === product.id ? product : item)),
+      prev.map((item) =>
+        item.id === product.id ? product : item,
+      ),
     );
   };
 
   const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((product) => product.id !== id));
-    setCart((prev) => prev.filter((item) => item.productId !== id));
-    setWishlist((prev) => prev.filter((productId) => productId !== id));
+    setProducts((prev) =>
+      prev.filter((product) => product.id !== id),
+    );
+    setCart((prev) =>
+      prev.filter((item) => item.productId !== id),
+    );
+    setWishlist((prev) =>
+      prev.filter((productId) => productId !== id),
+    );
   };
 
   const savePromos = (value: PromoCode[]) => {
     setPromos(value);
-    localStorage.setItem(KEYS.promos, JSON.stringify(value));
+    localStorage.setItem(
+      KEYS.promos,
+      JSON.stringify(value),
+    );
   };
 
-  const saveSettings = (value: StoreSettings) => {
-    setSettings(value);
-    localStorage.setItem(KEYS.settings, JSON.stringify(value));
+  const saveSettings = async (
+    value: StoreSettings,
+  ) => {
+    const response = await fetch(
+      '/api/admin/settings',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          settings: value,
+        }),
+      },
+    );
+
+    const payload = await response
+      .json()
+      .catch(() => ({}));
+
+    if (!response.ok || !payload.settings) {
+      throw new Error(
+        payload.error ||
+          'Could not save store settings.',
+      );
+    }
+
+    setSettings(
+      payload.settings as StoreSettings,
+    );
   };
 
   const cartProducts = useMemo(
     () =>
       cart
         .map((item) => ({
-          product: products.find((product) => product.id === item.productId),
+          product: products.find(
+            (product) =>
+              product.id === item.productId,
+          ),
           quantity: item.quantity,
         }))
         .filter((item) => item.product) as Array<{
@@ -417,7 +579,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [cart, products],
   );
 
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = cart.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
 
   return (
     <StoreContext.Provider
@@ -456,7 +621,9 @@ export function useStore() {
   const value = useContext(StoreContext);
 
   if (!value) {
-    throw new Error('useStore must be used within StoreProvider');
+    throw new Error(
+      'useStore must be used within StoreProvider',
+    );
   }
 
   return value;
