@@ -128,11 +128,11 @@ export default function HomePage() {
         <div className="container">
           <div className="why-grid">
             <div className="why-image">
-              <img
-                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1100&q=86"
-                alt="Vintage clothing shop"
-              />
-            </div>
+  <img
+    src="/why-thrift.jpg"
+    alt="EasyPeasy-Thrift store"
+  />
+</div>
             <div className="why-copy">
               <span className="eyebrow" style={{ color: '#c5d5c1' }}>
                 Why thrift?
