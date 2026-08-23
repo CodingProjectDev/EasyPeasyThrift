@@ -2166,3 +2166,59 @@ h2{
     animation:none;
   }
 }
+
+/* =========================================
+   WHATSAPP CHAT BUTTON
+========================================= */
+
+.whatsapp-chat {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 9998;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  background: #25d366;
+  color: #ffffff;
+
+  padding: 11px 16px;
+  border-radius: 999px;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.whatsapp-chat svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.whatsapp-chat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .whatsapp-chat {
+    right: 14px;
+    bottom: 18px;
+    padding: 11px 14px;
+    font-size: 13px;
+  }
+
+  .whatsapp-chat svg {
+    width: 21px;
+    height: 21px;
+  }
+}
