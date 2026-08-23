@@ -84,10 +84,6 @@ export default function Footer() {
             Store information
           </Link>
 
-          <Link href="/admin">
-            Admin
-          </Link>
-
           {(settings.instagramUrl || settings.tiktokUrl || settings.pinterestUrl) && (
             <div className="footer-socials">
               {settings.instagramUrl && (
