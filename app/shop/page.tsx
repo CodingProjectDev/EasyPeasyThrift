@@ -17,15 +17,18 @@ import { useSearchParams } from 'next/navigation';
 import ProductGrid from '@/components/product-grid';
 import { useStore } from '@/components/store-provider';
 
-const MAX_PRICE = 100000;
-
 function ShopContent() {
-  const { products } = useStore();
+  const { products, ready } = useStore();
 
   const searchParams = useSearchParams();
 
   const urlCategory =
     searchParams.get('category') || '';
+
+  const urlSort = searchParams.get('sort') || '';
+  const initialSort = ['featured', 'newest', 'price-low', 'price-high'].includes(urlSort)
+    ? urlSort
+    : 'featured';
 
   const [q, setQ] = useState('');
 
@@ -42,10 +45,10 @@ function ShopContent() {
     useState('All');
 
   const [maxPrice, setMaxPrice] =
-    useState(MAX_PRICE);
+    useState<number | null>(null);
 
   const [sort, setSort] =
-    useState('featured');
+    useState(initialSort);
 
   const [showFilters, setShowFilters] =
     useState(false);
@@ -63,6 +66,10 @@ function ShopContent() {
       urlCategory || 'All'
     );
   }, [urlCategory]);
+
+  useEffect(() => {
+    setSort(initialSort);
+  }, [initialSort]);
 
   /*
    * UNIQUE FILTER VALUES
@@ -103,6 +110,17 @@ function ShopContent() {
     [products]
   );
 
+  const storeMaxPrice = useMemo(() => {
+    const highest = products.reduce(
+      (current, product) => Math.max(current, product.price),
+      0,
+    );
+
+    return Math.max(1000, Math.ceil(highest / 100) * 100);
+  }, [products]);
+
+  const effectiveMaxPrice = maxPrice ?? storeMaxPrice;
+
   /*
    * FILTER PRODUCTS
    */
@@ -113,7 +131,7 @@ function ShopContent() {
     const list = products.filter(
       (product) => {
         const matchesPrice =
-          product.price <= maxPrice;
+          product.price <= effectiveMaxPrice;
 
         const matchesCategory =
           category === 'All' ||
@@ -199,7 +217,7 @@ function ShopContent() {
     size,
     condition,
     brand,
-    maxPrice,
+    effectiveMaxPrice,
     sort,
   ]);
 
@@ -219,9 +237,9 @@ function ShopContent() {
     setSize('All');
     setCondition('All');
     setBrand('All');
-    setMaxPrice(MAX_PRICE);
+    setMaxPrice(null);
     setQ('');
-    setSort('featured');
+    setSort(initialSort);
   }
 
   /*
@@ -319,9 +337,9 @@ function ShopContent() {
         <input
           type="range"
           min="0"
-          max={MAX_PRICE}
+          max={storeMaxPrice}
           step="100"
-          value={maxPrice}
+          value={effectiveMaxPrice}
           onChange={(event) =>
             setMaxPrice(
               Number(
@@ -336,7 +354,7 @@ function ShopContent() {
 
         <label>
           Rs.{' '}
-          {maxPrice.toLocaleString()}
+          {effectiveMaxPrice.toLocaleString()}
         </label>
       </div>
 
@@ -446,6 +464,16 @@ function ShopContent() {
       </button>
     </div>
   );
+
+  if (!ready) {
+    return (
+      <div className="container content-page">
+        <div className="empty-state">
+          <h3>Loading products…</h3>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">

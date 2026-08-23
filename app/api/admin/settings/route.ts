@@ -9,6 +9,27 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 
+class SettingsValidationError extends Error {}
+
+function normalizeHttpUrl(value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  let parsed: URL;
+
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new SettingsValidationError('Enter a complete social link starting with http:// or https://.');
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new SettingsValidationError('Social links must start with http:// or https://.');
+  }
+
+  return parsed.toString();
+}
+
 async function requireAdmin() {
   const cookieStore = await cookies();
 
@@ -41,10 +62,10 @@ function toClientSettings(row: any) {
     logoImage: row?.logo_path
       ? String(row.logo_path)
       : undefined,
+    instagramUrl: row?.instagram_url ? String(row.instagram_url) : '',
+    tiktokUrl: row?.tiktok_url ? String(row.tiktok_url) : '',
+    pinterestUrl: row?.pinterest_url ? String(row.pinterest_url) : '',
 
-    // Legacy compatibility only.
-    shippingFee: 0,
-    freeShippingThreshold: 0,
   };
 }
 
@@ -154,6 +175,9 @@ export async function POST(req: Request) {
       qr_image_path:
         String(settings.qrImage || '').trim() ||
         null,
+      instagram_url: normalizeHttpUrl(settings.instagramUrl),
+      tiktok_url: normalizeHttpUrl(settings.tiktokUrl),
+      pinterest_url: normalizeHttpUrl(settings.pinterestUrl),
 
       // Shipping is confirmed separately based on
       // product/location, so the automated order
@@ -189,7 +213,7 @@ export async function POST(req: Request) {
             ? error.message
             : 'Could not save store settings.',
       },
-      { status: 500 },
+      { status: error instanceof SettingsValidationError ? 400 : 500 },
     );
   }
 }

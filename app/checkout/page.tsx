@@ -37,6 +37,7 @@ export default function CheckoutPage() {
     placeLocalOrder,
     promos,
     settings,
+    ready,
   } = useStore();
 
   const [method, setMethod] =
@@ -308,6 +309,9 @@ export default function CheckoutPage() {
             '/api/payment-proof',
             {
               method: 'POST',
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
               body: uploadForm,
             },
           );
@@ -371,8 +375,6 @@ export default function CheckoutPage() {
           method,
         paymentProofName:
           proof?.name,
-        paymentProofDataUrl:
-          proofPreview,
         transactionId:
           method === 'QR'
             ? txid.trim()
@@ -383,46 +385,26 @@ export default function CheckoutPage() {
             : 'Pending',
       };
 
-      const controller =
-        new AbortController();
-
-      const timeoutId =
-        window.setTimeout(
-          () =>
-            controller.abort(),
-          20000,
-        );
-
-      let response: Response;
-
-      try {
-        response = await fetch(
-          '/api/orders',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type':
-                'application/json',
-              Authorization:
-                `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              ...order,
-              paymentProofPath:
-                proofUrl,
-              promoCode:
-                validPromo?.code ||
-                null,
-            }),
-            signal:
-              controller.signal,
+      const response = await fetch(
+        '/api/orders',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json',
+            Authorization:
+              `Bearer ${session.access_token}`,
           },
-        );
-      } finally {
-        window.clearTimeout(
-          timeoutId,
-        );
-      }
+          body: JSON.stringify({
+            ...order,
+            paymentProofPath:
+              proofUrl,
+            promoCode:
+              validPromo?.code ||
+              null,
+          }),
+        },
+      );
 
       const result =
         await response
@@ -468,27 +450,17 @@ export default function CheckoutPage() {
         error,
       );
 
-      if (
-        error instanceof Error &&
-        error.name ===
-          'AbortError'
-      ) {
-        alert(
-          'The order request took too long. Please try again.',
-        );
-      } else {
-        alert(
-          error instanceof Error
-            ? error.message
-            : 'Could not place order.',
-        );
-      }
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Could not place order.',
+      );
     } finally {
       setBusy(false);
     }
   }
 
-  if (!authChecked) {
+  if (!authChecked || !ready) {
     return (
       <div className="container content-page">
         <div className="empty-state">
@@ -496,7 +468,7 @@ export default function CheckoutPage() {
             Loading checkout…
           </h2>
           <p className="muted">
-            Checking your account.
+            Checking your account and current inventory.
           </p>
         </div>
       </div>
@@ -677,9 +649,16 @@ export default function CheckoutPage() {
                   defaultValue={
                     userEmail
                   }
+                  readOnly={Boolean(userEmail)}
                   autoComplete="email"
                   required
                 />
+
+                {userEmail && (
+                  <small className="muted">
+                    Orders are linked to your logged-in account email.
+                  </small>
+                )}
               </div>
 
               <div className="field">
@@ -827,12 +806,12 @@ export default function CheckoutPage() {
               {settings.shippingInfo}
             </div>
 
-            {method === 'QR' && (
+            {method === 'QR' && settings.qrEnabled && (
               <div className="qr-box">
                 <img
                   src={
                     settings.qrImage ||
-                    '/store-qr.svg'
+                    '/store-qr.png'
                   }
                   alt="Store payment QR code"
                 />
@@ -864,7 +843,7 @@ export default function CheckoutPage() {
                   <input
                     className="control"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     required={
                       method === 'QR'
                     }

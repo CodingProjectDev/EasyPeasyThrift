@@ -25,6 +25,7 @@ export default function ProductPage() {
     addToCart,
     recordRecent,
     recent,
+    ready,
   } = useStore();
 
   const product =
@@ -38,6 +39,17 @@ export default function ProductPage() {
       recordRecent(product.id);
     }
   }, [product?.id]);
+
+  if (!ready) {
+    return (
+      <div className="container content-page">
+        <div className="empty-state">
+          <h2>Loading piece…</h2>
+          <p className="muted">Checking the latest store inventory.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (

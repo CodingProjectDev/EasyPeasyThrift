@@ -39,9 +39,6 @@ export default function LoginPage() {
           },
         });
 
-        console.log('SIGNUP DATA:', data);
-        console.log('SIGNUP ERROR:', error);
-
         if (error) {
           setMessage(`ERROR: ${error.message}`);
           return;
@@ -81,9 +78,6 @@ export default function LoginPage() {
           email,
           password,
         });
-
-      console.log('LOGIN DATA:', data);
-      console.log('LOGIN ERROR:', error);
 
       if (error) {
         setMessage(`ERROR: ${error.message}`);

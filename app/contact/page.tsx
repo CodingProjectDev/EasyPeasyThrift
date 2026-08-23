@@ -66,7 +66,7 @@ export default function Contact() {
             event.preventDefault();
 
             alert(
-              'Message captured in demo mode. Connect this form to email or your database before launch.',
+              'This contact form is not connected yet. Please use the store email or phone shown on this page.',
             );
           }}
         >

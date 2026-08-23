@@ -96,7 +96,6 @@ export default function OrdersPage() {
               quantity
             )
           `)
-          .eq('customer_id', user.id)
           .order('created_at', { ascending: false });
 
         if (orderError) {

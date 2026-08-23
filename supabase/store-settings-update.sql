@@ -1,3 +1,7 @@
+-- LEGACY PATCH: do not use this file for the current app.
+-- Existing deployments should run supabase/FINAL-FIXES.sql instead.
+-- This file is retained only for reference.
+
 -- EasyPeasyThrift store settings update
 -- Run this ONCE in Supabase SQL Editor before using the new Admin Settings page.
 

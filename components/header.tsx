@@ -25,19 +25,6 @@ import {
 import { useStore } from './store-provider';
 import { createClient } from '@/lib/supabase/client';
 
-const links = [
-  ['Shop', '/shop'],
-  [
-    'Brand New Product',
-    '/shop?category=Brand%20New%20Product',
-  ],
-  [
-    'Used Product',
-    '/shop?category=Used%20Product',
-  ],
-  ['About', '/about'],
-];
-
 export default function Header() {
   const [open, setOpen] =
     useState(false);
@@ -57,10 +44,26 @@ export default function Header() {
     cartCount,
     wishlist,
     settings,
+    products,
   } = useStore();
 
   const pathname = usePathname();
   const router = useRouter();
+
+  const categoryLinks = Array.from(
+    new Set(products.map((product) => product.category).filter(Boolean)),
+  )
+    .slice(0, 2)
+    .map((category) => [
+      category,
+      `/shop?category=${encodeURIComponent(category)}`,
+    ] as const);
+
+  const links = [
+    ['Shop', '/shop'] as const,
+    ...categoryLinks,
+    ['About', '/about'] as const,
+  ];
 
   useEffect(() => {
     const supabase = createClient();

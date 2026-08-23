@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
-const ORDER_TIMEOUT = 15000;
 
 export async function POST(req: Request) {
   try {
@@ -67,9 +66,44 @@ export async function POST(req: Request) {
       );
     }
 
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    for (const item of body.items) {
+      const quantity = Number(item?.quantity);
+      if (!uuidPattern.test(String(item?.productId || '')) || !Number.isInteger(quantity) || quantity < 1) {
+        return NextResponse.json(
+          { error: 'One or more cart items are invalid. Refresh your cart and try again.' },
+          { status: 400 }
+        );
+      }
+    }
+
     if (!['COD', 'QR'].includes(body.paymentMethod)) {
       return NextResponse.json(
         { error: 'Unsupported payment method.' },
+        { status: 400 }
+      );
+    }
+
+    const { data: storeSettings, error: settingsError } = await supabase
+      .from('store_settings')
+      .select('cod_enabled,qr_enabled')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (settingsError) {
+      return NextResponse.json(
+        { error: `Could not verify payment settings: ${settingsError.message}` },
+        { status: 500 }
+      );
+    }
+
+    if (
+      (body.paymentMethod === 'COD' && storeSettings?.cod_enabled === false) ||
+      (body.paymentMethod === 'QR' && storeSettings?.qr_enabled === false)
+    ) {
+      return NextResponse.json(
+        { error: 'That payment method is currently disabled.' },
         { status: 400 }
       );
     }
@@ -97,8 +131,7 @@ export async function POST(req: Request) {
       })
     );
 
-    const rpcRequest = Promise.resolve(
-      supabase.rpc('place_order', {
+    const { data, error } = await supabase.rpc('place_order', {
         p_customer_id: user.id,
 
         p_email:
@@ -133,27 +166,16 @@ export async function POST(req: Request) {
           body.promoCode || null,
 
         p_items: items,
-      })
-    );
-
-    // Prevent an endless "Placing order..." request
-    const timeout = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(
-          new Error(
-            'Database order request timed out.'
-          )
-        );
-      }, ORDER_TIMEOUT);
-    });
-
-    const { data, error } = await Promise.race([
-      rpcRequest,
-      timeout,
-    ]);
+      });
 
     if (error) {
       console.error('PLACE ORDER RPC ERROR:', error);
+
+      if (body.paymentMethod === 'QR' && body.paymentProofPath) {
+        await supabase.storage
+          .from('payment-proofs')
+          .remove([String(body.paymentProofPath)]);
+      }
 
       return NextResponse.json(
         {

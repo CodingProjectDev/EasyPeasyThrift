@@ -1,123 +1,173 @@
 # EasyPeasy-Thrift
 
-A mobile-first thrift-fashion e-commerce starter built with Next.js + TypeScript. It includes a complete customer storefront, COD + QR-only checkout, one-of-one inventory behavior, and a protected `/admin` dashboard.
+EasyPeasy-Thrift is a Next.js + TypeScript thrift-store application with a Supabase-backed catalog, customer authentication, orders, inventory, promo codes, store settings, product images, QR payment proofs, and a protected admin dashboard.
 
-## What is included
+## Current architecture
 
-- Home: hero, categories, new arrivals, featured edit, why thrift, newsletter, Instagram-style section, footer
-- Shop: search, category, price, size, condition, brand, sorting
-- Product: photos, price, size, condition, measurements, description, brand, badges, wishlist, related products, recently viewed, sold-out state
-- Cart + checkout
-- Payments: **Cash on Delivery** and **QR Payment only**
-- QR checkout: store QR, screenshot upload, transaction/reference ID, `Payment Verification Required`
-- Customer login/signup demo, wishlist, order history
-- About, FAQ, Shipping & Returns, Contact
-- `/admin`: dashboard, products, orders, inventory, customers, discounts, settings
-- Admin QR approve/reject controls
-- Product photo upload in the local demo
-- Settings for logo, store information, shipping, returns, QR image, COD on/off, QR on/off
-- Supabase SQL schema with atomic order/inventory function and private payment-proof storage bucket
-- Vercel-ready environment setup
+Supabase is the production source of truth for:
 
-## Run locally in VS Code
+- products and inventory
+- customer authentication
+- orders and order items
+- order status
+- promo codes
+- store information and payment settings
+- product/store images
+- QR payment proof uploads
 
-1. Open the `EasyPeasy-Thrift` folder in VS Code.
-2. Open Terminal.
-3. Run:
+Browser `localStorage` is used only for customer cart, wishlist, and recently-viewed state. Orders, inventory, discounts, and admin settings are **not** stored locally.
+
+## Features
+
+### Customer storefront
+
+- Responsive home, shop, product, cart, checkout, wishlist, FAQ, About, Contact, Shipping & Returns
+- Search/filter/sort
+- One-of-One, New Arrival, Vintage Find, Featured, and Sold Out states
+- Customer login/signup and password recovery with Supabase Auth
+- Customer order history loaded directly from Supabase
+- Cash on Delivery and QR Payment controls managed by Admin
+- QR payment proof upload + transaction/reference ID
+- Customer-facing shipping text instead of a fixed shipping/free-shipping calculation
+- Store logo, email, phone, return policy, Instagram, TikTok, and Pinterest from Admin Settings
+
+### Admin
+
+- Protected `/admin` dashboard
+- Products stored in Supabase
+- Durable Supabase Storage image uploads
+- Orders loaded from Supabase
+- Order status changes saved to Supabase and reflected on the customer side
+- QR proof review with signed private URLs
+- Inventory edits saved to Supabase
+- Customer summaries derived from real orders
+- Promo codes stored in Supabase and validated by checkout
+- Store settings stored in Supabase
+
+## Required environment variables
+
+Create `.env.local` locally and add the same variables in Vercel → Project → Settings → Environment Variables.
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+
+# Server only. Prefer the current Supabase secret key.
+SUPABASE_SECRET_KEY=your-secret-key
+
+# Optional legacy fallback if your project still uses it:
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+ADMIN_EMAIL=your-private-admin-email
+ADMIN_PASSWORD=use-a-long-unique-password
+ADMIN_SESSION_SECRET=use-at-least-32-random-characters
+```
+
+Never expose the Supabase secret/service-role key, admin password, or admin session secret with a `NEXT_PUBLIC_` prefix or commit them to Git.
+
+## Supabase setup
+
+### New Supabase project
+
+1. Create the project.
+2. Open Supabase → SQL Editor.
+3. Run `supabase/schema.sql`.
+4. Optional: run `supabase/seed.sql` if you want the sample catalog.
+5. Configure the environment variables above.
+6. In Supabase Auth URL configuration, add your local and deployed URLs as appropriate for login/password recovery.
+
+### Existing EasyPeasy-Thrift Supabase project
+
+Run:
+
+```text
+supabase/FINAL-FIXES.sql
+```
+
+This migration adds/repairs the current store-settings fields, social links, product TikTok field, storage buckets, payment-method enforcement, checkout RPC permissions, legacy-order customer visibility, and QR rejection/reactivation inventory behavior.
+
+If your old database never received the original product catalog patch, also review `supabase/production-fix.sql`.
+
+## Important database behavior
+
+`place_order(...)` is server-only. The browser cannot call the privileged checkout RPC directly.
+
+The function:
+
+- validates the selected payment method against Admin Settings
+- validates product IDs and quantities
+- locks product rows during checkout
+- uses database prices rather than browser-submitted prices
+- validates active/non-expired promo codes
+- creates the order and order items atomically
+- decrements inventory atomically
+- sets one-of-one items to stock `0`
+- leaves shipping at `0` because shipping is confirmed separately based on product/location
+
+For QR orders, changing an order to `Payment Rejected` restores reserved inventory. If Admin later tries to reactivate that rejected order, inventory is reserved again; the status change is blocked if the stock is no longer available.
+
+## Product and store images
+
+Admin product uploads accept JPG, PNG, WEBP, HEIC, and HEIF. HEIC/HEIF is converted in the browser to JPEG before upload.
+
+With Supabase configured, product images and Admin Settings images are saved in the public `product-images` bucket. Vercel's local filesystem is not used for production uploads.
+
+QR payment proof accepts JPG, PNG, or WEBP up to 5 MB and is stored in the private `payment-proofs` bucket. The upload endpoint requires a valid logged-in customer session.
+
+## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-4. Open `http://localhost:3000`.
+Open:
 
-### Local admin login
-
-For development only, if you do not create an `.env.local`, the fallback login is:
-
-- Email: `admin@easypeasy.local`
-- Password: `easypeasy-demo`
-
-Open `http://localhost:3000/admin`.
-
-**Do not deploy with fallback credentials.** Production intentionally refuses fallback admin credentials.
-
-## Production environment variables
-
-Copy `.env.example` to `.env.local` for local database testing, and add the same secrets to Vercel → Project → Settings → Environment Variables.
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-ADMIN_EMAIL=your-private-admin-email
-ADMIN_PASSWORD=a-long-unique-password
-ADMIN_SESSION_SECRET=at-least-32-random-characters
+```text
+http://localhost:3000
 ```
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, or `ADMIN_SESSION_SECRET` in browser code or commit them to Git.
+Admin:
 
-## Product photo uploads
+```text
+http://localhost:3000/admin
+```
 
-The admin product form now uses a durable upload flow instead of storing full photos inside `localStorage`.
+For local development only, if Admin environment variables are omitted, the code has this fallback:
 
-- In local VS Code development, uploaded product images are saved under `public/uploads/` and the product stores a `/uploads/...` URL.
-- JPG, PNG, WEBP, HEIC, and HEIF are accepted. HEIC/HEIF photos are converted to browser-compatible JPEG before upload.
-- When Supabase is configured, the same admin form uploads product photos to the public `product-images` Storage bucket created by `supabase/schema.sql`. This is the mode to use on Vercel.
-- Vercel's filesystem is not permanent, so production image uploads intentionally require Supabase Storage.
+```text
+Email: admin@easypeasy.local
+Password: easypeasy-demo
+```
 
-If products created with an older build show a broken-image icon, click **Edit**, choose that photo again, and click **Save changes**. The old unsupported/local image value cannot be reconstructed automatically.
-
-## Supabase setup
-
-1. Create a Supabase project.
-2. Open SQL Editor.
-3. Run `supabase/schema.sql`.
-4. For the included demo catalog, optionally run `supabase/seed.sql`. The seeded UUIDs match the frontend demo product IDs, so the QR/COD order API can write real Supabase orders immediately.
-5. Replace demo products with your real inventory when ready.
-6. If you switch customer auth to Supabase Auth, create the matching profile row after signup and add your admin Auth user UUID to `public.admin_users`.
-7. Replace the demo QR in Admin → Settings with the real store payment QR.
-
-The SQL function `place_order(...)` locks product rows during checkout, checks inventory, calculates totals from database prices, creates the order, creates order items, and decrements inventory atomically. For `one_of_one=true`, a successful sale sets inventory to `0`.
-
-## Demo mode vs production mode
-
-The included UI works immediately using browser `localStorage`. That is intentional so you can see and test every screen before creating a database. Browser storage is **not a production backend**: another device will not see those orders or inventory changes.
-
-The `/api/orders` and `/api/payment-proof` routes are already prepared for Supabase. Once Supabase is configured and your catalog uses database UUIDs, move product reads, customer auth, admin CRUD, order history, discounts, and settings from local demo state to Supabase queries. The schema is included so that migration is straightforward.
-
-## QR payment behavior
-
-1. Customer selects QR Payment.
-2. Store QR is displayed.
-3. Customer uploads a screenshot and enters the transaction/reference ID.
-4. Order status starts as `Payment Verification Required`.
-5. Admin views the order and approves or rejects it.
-6. Approved → Processing → Shipped → Delivered.
-
-COD starts as Pending → Processing → Shipped → Delivered.
-
-No Stripe, PayPal, credit/debit card, Apple Pay, Google Pay, or other gateway is included.
+Production does not allow the fallback admin credentials.
 
 ## Deploy to Vercel
 
-1. Push this folder to GitHub.
-2. In Vercel, choose **Add New → Project** and import the repository.
-3. Framework should auto-detect as Next.js.
-4. Add the production environment variables above.
+1. Push the project to GitHub.
+2. Import the repository into Vercel.
+3. Add all required environment variables.
+4. Make sure the Supabase SQL migration has been applied.
 5. Deploy.
+6. Test with two accounts/browsers before taking real orders.
 
-## Before taking real orders
+## Pre-launch test checklist
 
-- Replace demo Unsplash product imagery with your own product photos.
-- Replace the placeholder QR with your real payment QR.
-- Set a strong production admin password/session secret.
-- Connect catalog, admin CRUD, auth, orders, discounts, and settings to Supabase instead of localStorage.
-- Add server-side email/order notifications if wanted.
-- Finalize your shipping and return policy.
-- Test QR verification, inventory race conditions, mobile checkout, and sold-out behavior with two browsers/devices.
+- Customer signup/login/logout
+- Forgot/reset password redirect URLs
+- Admin login/logout
+- Add/edit/delete product
+- Product image upload
+- Inventory edit and refresh from another browser
+- COD checkout
+- QR checkout and proof upload
+- QR approve/reject
+- Reject → reactivate stock behavior
+- Customer order status after Admin changes it
+- Promo create/disable/delete and checkout validation
+- Store information/settings on customer pages
+- Mobile cart/checkout/admin tables
 
-## Visual direction
+## Known non-core placeholders
 
-The UI uses cream, sage green, brown, and black with editorial serif typography, rounded fashion photography, lightweight motion, large tap targets, and responsive layouts intended to feel like a real thrift brand rather than a generic marketplace template.
+The newsletter section intentionally does not collect email addresses until you connect a newsletter provider. The Contact form also does not submit to a backend yet; customers are directed to the store email/phone instead. These placeholders do not affect checkout, orders, inventory, or authentication.

@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/client';
@@ -18,41 +19,77 @@ export default function ResetPasswordPage() {
     useState('');
 
   const [ready, setReady] = useState(false);
+  const [linkError, setLinkError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
+    let mounted = true;
 
-    async function checkSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    async function checkRecoverySession() {
+      try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get('code');
 
-      if (session) {
-        setReady(true);
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (error) {
+            if (mounted) setLinkError(error.message);
+            return;
+          }
+
+          window.history.replaceState({}, '', '/reset-password');
+        }
+
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
+        if (error) {
+          setLinkError(error.message);
+          return;
+        }
+
+        if (session) {
+          setReady(true);
+          setLinkError('');
+        } else {
+          setLinkError('This password reset link is invalid or expired. Request a new one.');
+        }
+      } catch (error) {
+        if (!mounted) return;
+        setLinkError(
+          error instanceof Error
+            ? error.message
+            : 'Could not verify the password reset link.',
+        );
       }
     }
 
-    checkSession();
+    void checkRecoverySession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (
-          event === 'PASSWORD_RECOVERY' ||
-          session
-        ) {
-          setReady(true);
-        }
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+
+      if (event === 'PASSWORD_RECOVERY' || session) {
+        setReady(true);
+        setLinkError('');
       }
-    );
+    });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
+
 
   async function submit(
     event: FormEvent<HTMLFormElement>
@@ -104,13 +141,17 @@ export default function ResetPasswordPage() {
     return (
       <div className="container content-page">
         <div className="empty-state">
-          <h2>
-            Checking password reset link...
-          </h2>
+          <h2>{linkError ? 'Reset link unavailable.' : 'Checking password reset link...'}</h2>
 
           <p className="muted">
-            If this page does not continue, request a new password reset link.
+            {linkError || 'Verifying your secure recovery session.'}
           </p>
+
+          {linkError && (
+            <Link className="btn sage" href="/forgot-password">
+              Request a new reset link
+            </Link>
+          )}
         </div>
       </div>
     );

@@ -88,35 +88,31 @@ export default function Footer() {
             Admin
           </Link>
 
-          <div className="footer-socials">
-            <a
-              href="https://www.instagram.com/YOUR_INSTAGRAM_USERNAME"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Instagram
-            </a>
+          {(settings.instagramUrl || settings.tiktokUrl || settings.pinterestUrl) && (
+            <div className="footer-socials">
+              {settings.instagramUrl && (
+                <a href={settings.instagramUrl} target="_blank" rel="noopener noreferrer">
+                  Instagram
+                </a>
+              )}
 
-            <span>·</span>
+              {settings.instagramUrl && (settings.tiktokUrl || settings.pinterestUrl) && <span>·</span>}
 
-            <a
-              href="https://www.tiktok.com/@YOUR_TIKTOK_USERNAME"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              TikTok
-            </a>
+              {settings.tiktokUrl && (
+                <a href={settings.tiktokUrl} target="_blank" rel="noopener noreferrer">
+                  TikTok
+                </a>
+              )}
 
-            <span>·</span>
+              {settings.tiktokUrl && settings.pinterestUrl && <span>·</span>}
 
-            <a
-              href="https://www.pinterest.com/YOUR_PINTEREST_USERNAME"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Pinterest
-            </a>
-          </div>
+              {settings.pinterestUrl && (
+                <a href={settings.pinterestUrl} target="_blank" rel="noopener noreferrer">
+                  Pinterest
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -74,6 +74,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Enter a valid inventory amount.' }, { status: 400 });
     }
 
+    if (product.oneOfOne && Number(product.inventory) > 1) {
+      return NextResponse.json(
+        { error: 'One-of-One products can only have inventory 0 or 1.' },
+        { status: 400 },
+      );
+    }
+
     const row = makeRow(product);
 
     let result;

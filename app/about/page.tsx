@@ -24,7 +24,7 @@ export default function About() {
         </h1>
 
         <p>
-          EasyPeasy-Thrift is built around a
+          {settings.storeName} is built around a
           simple idea: secondhand shopping should
           feel curated, trustworthy, and fun—not
           like digging through a messy catalog.
@@ -35,7 +35,7 @@ export default function About() {
         </p>
 
         <h2>
-          Secondhand. Standout. So Easy.
+          {settings.tagline}
         </h2>
 
         <p>

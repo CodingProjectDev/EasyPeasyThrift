@@ -214,6 +214,42 @@ export default function SettingsPage() {
             />
           </div>
 
+          <div>
+            <label>Instagram URL</label>
+            <input
+              type="url"
+              value={draft.instagramUrl || ''}
+              onChange={(event) =>
+                setDraft({ ...draft, instagramUrl: event.target.value })
+              }
+              placeholder="https://instagram.com/yourstore"
+            />
+          </div>
+
+          <div>
+            <label>TikTok URL</label>
+            <input
+              type="url"
+              value={draft.tiktokUrl || ''}
+              onChange={(event) =>
+                setDraft({ ...draft, tiktokUrl: event.target.value })
+              }
+              placeholder="https://tiktok.com/@yourstore"
+            />
+          </div>
+
+          <div className="full">
+            <label>Pinterest URL</label>
+            <input
+              type="url"
+              value={draft.pinterestUrl || ''}
+              onChange={(event) =>
+                setDraft({ ...draft, pinterestUrl: event.target.value })
+              }
+              placeholder="https://pinterest.com/yourstore"
+            />
+          </div>
+
           <div className="full">
             <label>
               Shipping fee / information
