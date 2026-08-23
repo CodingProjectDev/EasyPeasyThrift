@@ -1,11 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/client';
@@ -22,12 +18,7 @@ type CustomerOrder = Order & {
 
 function tone(status: OrderStatus) {
   if (
-    [
-      'Delivered',
-      'Approved',
-      'Processing',
-      'Shipped',
-    ].includes(status)
+    ['Delivered', 'Approved', 'Processing', 'Shipped'].includes(status)
   ) {
     return 'good';
   }
@@ -36,10 +27,7 @@ function tone(status: OrderStatus) {
     return 'bad';
   }
 
-  if (
-    status ===
-    'Payment Verification Required'
-  ) {
+  if (status === 'Payment Verification Required') {
     return 'warn';
   }
 
@@ -48,34 +36,22 @@ function tone(status: OrderStatus) {
 
 function numberValue(value: unknown) {
   const result = Number(value);
-  return Number.isFinite(result)
-    ? result
-    : 0;
+  return Number.isFinite(result) ? result : 0;
 }
 
 export default function OrdersPage() {
   const router = useRouter();
 
-  const [orders, setOrders] =
-    useState<CustomerOrder[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [refreshing, setRefreshing] =
-    useState(false);
-
-  const [error, setError] =
-    useState('');
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
 
   const loadOrders = useCallback(
-    async (
-      showLoading = false
-    ) => {
-      const supabase =
-        createClient();
+    async (showRefreshing = false) => {
+      const supabase = createClient();
 
-      if (showLoading) {
+      if (showRefreshing) {
         setRefreshing(true);
       }
 
@@ -85,31 +61,14 @@ export default function OrdersPage() {
         const {
           data: { user },
           error: userError,
-        } =
-          await supabase.auth.getUser();
+        } = await supabase.auth.getUser();
 
-        if (
-          userError ||
-          !user
-        ) {
-          router.replace(
-            '/login'
-          );
+        if (userError || !user) {
+          router.replace('/login');
           return;
         }
 
-        /*
-         * IMPORTANT:
-         * Customer order history now comes
-         * directly from Supabase.
-         *
-         * RLS in your schema only allows
-         * customers to read their own orders.
-         */
-        const {
-          data,
-          error: orderError,
-        } = await supabase
+        const { data, error: orderError } = await supabase
           .from('orders')
           .select(`
             id,
@@ -137,279 +96,85 @@ export default function OrdersPage() {
               quantity
             )
           `)
-          .eq(
-            'customer_id',
-            user.id
-          )
-          .order(
-            'created_at',
-            {
-              ascending:
-                false,
-            }
-          );
+          .eq('customer_id', user.id)
+          .order('created_at', { ascending: false });
 
         if (orderError) {
           throw orderError;
         }
 
-        const mapped:
-          CustomerOrder[] =
-          (data || []).map(
-            (row: any) => ({
-              databaseId:
-                String(
-                  row.id
-                ),
+        const mapped: CustomerOrder[] = (data || []).map((row: any) => ({
+          databaseId: String(row.id),
+          id: String(row.public_order_id),
+          createdAt: String(row.created_at),
 
-              id:
-                String(
-                  row.public_order_id
-                ),
+          customer: {
+            name: String(row.full_name || ''),
+            email: String(row.email || ''),
+            phone: String(row.phone || ''),
+            address: String(row.address || ''),
+            city: String(row.city || ''),
+            postalCode: String(row.postal_code || ''),
+          },
 
-              createdAt:
-                String(
-                  row.created_at
-                ),
+          items: Array.isArray(row.order_items)
+            ? row.order_items.map((item: any) => ({
+                productId: item.product_id
+                  ? String(item.product_id)
+                  : String(item.id),
+                name: String(item.product_name || ''),
+                price: numberValue(item.unit_price),
+                quantity: numberValue(item.quantity),
+              }))
+            : [],
 
-              customer: {
-                name:
-                  String(
-                    row.full_name ||
-                      ''
-                  ),
+          subtotal: numberValue(row.subtotal),
+          shipping: numberValue(row.shipping),
+          discount: numberValue(row.discount),
+          total: numberValue(row.total),
 
-                email:
-                  String(
-                    row.email ||
-                      ''
-                  ),
+          paymentMethod: String(row.payment_method) as PaymentMethod,
 
-                phone:
-                  String(
-                    row.phone ||
-                      ''
-                  ),
+          transactionId: row.transaction_id
+            ? String(row.transaction_id)
+            : undefined,
 
-                address:
-                  String(
-                    row.address ||
-                      ''
-                  ),
-
-                city:
-                  String(
-                    row.city ||
-                      ''
-                  ),
-
-                postalCode:
-                  String(
-                    row.postal_code ||
-                      ''
-                  ),
-              },
-
-              items:
-                Array.isArray(
-                  row.order_items
-                )
-                  ? row.order_items.map(
-                      (
-                        item: any
-                      ) => ({
-                        productId:
-                          item.product_id
-                            ? String(
-                                item.product_id
-                              )
-                            : String(
-                                item.id
-                              ),
-
-                        name:
-                          String(
-                            item.product_name ||
-                              ''
-                          ),
-
-                        price:
-                          numberValue(
-                            item.unit_price
-                          ),
-
-                        quantity:
-                          numberValue(
-                            item.quantity
-                          ),
-                      })
-                    )
-                  : [],
-
-              subtotal:
-                numberValue(
-                  row.subtotal
-                ),
-
-              shipping:
-                numberValue(
-                  row.shipping
-                ),
-
-              discount:
-                numberValue(
-                  row.discount
-                ),
-
-              total:
-                numberValue(
-                  row.total
-                ),
-
-              paymentMethod:
-                String(
-                  row.payment_method
-                ) as PaymentMethod,
-
-              transactionId:
-                row.transaction_id
-                  ? String(
-                      row.transaction_id
-                    )
-                  : undefined,
-
-              status:
-                String(
-                  row.status
-                ) as OrderStatus,
-            })
-          );
+          status: String(row.status) as OrderStatus,
+        }));
 
         setOrders(mapped);
       } catch (loadError) {
-        console.error(
-          'CUSTOMER ORDERS ERROR:',
-          loadError
-        );
+        console.error('CUSTOMER ORDERS ERROR:', loadError);
 
         setError(
           loadError instanceof Error
             ? loadError.message
-            : 'Could not load your orders.'
+            : 'Could not load your orders.',
         );
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [router]
+    [router],
   );
 
   useEffect(() => {
-    const supabase =
-      createClient();
-
-    let active = true;
-    let channel:
-      ReturnType<
-        typeof supabase.channel
-      > | null = null;
-
-    /*
-     * Load immediately.
-     */
     void loadOrders();
 
-    async function connectRealtime() {
-      const {
-        data: { user },
-      } =
-        await supabase.auth.getUser();
-
-      if (
-        !active ||
-        !user
-      ) {
-        return;
-      }
-
-      /*
-       * When Admin changes order status,
-       * refresh the customer's list.
-       *
-       * If Realtime is not enabled for the
-       * orders table, the focus/poll refresh
-       * below still keeps status updated.
-       */
-      channel =
-        supabase
-          .channel(
-            `customer-orders-${user.id}`
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema:
-                'public',
-              table:
-                'orders',
-              filter:
-                `customer_id=eq.${user.id}`,
-            },
-            () => {
-              void loadOrders();
-            }
-          )
-          .subscribe();
-    }
-
-    void connectRealtime();
-
-    /*
-     * Refresh whenever customer comes
-     * back to this browser tab.
-     */
     function handleFocus() {
       void loadOrders();
     }
 
-    window.addEventListener(
-      'focus',
-      handleFocus
-    );
+    window.addEventListener('focus', handleFocus);
 
-    /*
-     * Backup refresh every 10 seconds.
-     * This means Admin status changes
-     * appear even if Supabase Realtime
-     * is not enabled for orders.
-     */
-    const intervalId =
-      window.setInterval(
-        () => {
-          void loadOrders();
-        },
-        10000
-      );
+    const intervalId = window.setInterval(() => {
+      void loadOrders();
+    }, 10000);
 
     return () => {
-      active = false;
-
-      window.removeEventListener(
-        'focus',
-        handleFocus
-      );
-
-      window.clearInterval(
-        intervalId
-      );
-
-      if (channel) {
-        void supabase.removeChannel(
-          channel
-        );
-      }
+      window.removeEventListener('focus', handleFocus);
+      window.clearInterval(intervalId);
     };
   }, [loadOrders]);
 
@@ -417,9 +182,7 @@ export default function OrdersPage() {
     return (
       <div className="container content-page">
         <div className="empty-state">
-          <h3>
-            Loading your orders…
-          </h3>
+          <h3>Loading your orders…</h3>
         </div>
       </div>
     );
@@ -428,34 +191,18 @@ export default function OrdersPage() {
   return (
     <div className="container">
       <div className="page-hero">
-        <span className="eyebrow">
-          Your account
-        </span>
+        <span className="eyebrow">Your account</span>
 
-        <h1>
-          Order history.
-        </h1>
+        <h1>Order history.</h1>
 
-        <div
-          style={{
-            marginTop: 18,
-          }}
-        >
+        <div style={{ marginTop: 18 }}>
           <button
             type="button"
             className="btn ghost"
-            onClick={() =>
-              void loadOrders(
-                true
-              )
-            }
-            disabled={
-              refreshing
-            }
+            onClick={() => void loadOrders(true)}
+            disabled={refreshing}
           >
-            {refreshing
-              ? 'Refreshing…'
-              : 'Refresh order status'}
+            {refreshing ? 'Refreshing…' : 'Refresh order status'}
           </button>
         </div>
       </div>
@@ -465,8 +212,7 @@ export default function OrdersPage() {
           className="notice"
           style={{
             marginBottom: 18,
-            color:
-              '#9b4136',
+            color: '#9b4136',
           }}
         >
           {error}
@@ -474,176 +220,98 @@ export default function OrdersPage() {
       )}
 
       {orders.length ? (
-        orders.map(
-          (order) => (
-            <article
-              className="order-card"
-              key={
-                order.databaseId
-              }
-            >
-              <div className="order-head">
-                <div>
-                  <b>
-                    {order.id}
-                  </b>
+        orders.map((order) => (
+          <article
+            className="order-card"
+            key={order.databaseId}
+          >
+            <div className="order-head">
+              <div>
+                <b>{order.id}</b>
 
-                  <p
-                    className="muted"
-                    style={{
-                      margin:
-                        '4px 0 0',
-                    }}
-                  >
-                    {new Date(
-                      order.createdAt
-                    ).toLocaleString()}
-                  </p>
-                </div>
-
-                <span
-                  className={`status ${tone(
-                    order.status
-                  )}`}
-                >
-                  {
-                    order.status
-                  }
-                </span>
-              </div>
-
-              {order.items.map(
-                (
-                  item,
-                  index
-                ) => (
-                  <div
-                    className="summary-row"
-                    key={`${item.productId}-${index}`}
-                  >
-                    <span>
-                      {item.name}{' '}
-                      ×{' '}
-                      {
-                        item.quantity
-                      }
-                    </span>
-
-                    <b>
-                      {money(
-                        item.price *
-                          item.quantity
-                      )}
-                    </b>
-                  </div>
-                )
-              )}
-
-              <div className="summary-row">
-                <span>
-                  Subtotal
-                </span>
-
-                <b>
-                  {money(
-                    order.subtotal
-                  )}
-                </b>
-              </div>
-
-              {order.discount >
-                0 && (
-                <div className="summary-row">
-                  <span>
-                    Discount
-                  </span>
-
-                  <b>
-                    −
-                    {money(
-                      order.discount
-                    )}
-                  </b>
-                </div>
-              )}
-
-              <div className="summary-row total">
-                <span>
-                  Total ·{' '}
-                  {
-                    order.paymentMethod
-                  }
-                </span>
-
-                <span>
-                  {money(
-                    order.total
-                  )}
-                </span>
-              </div>
-
-              {order.paymentMethod ===
-                'QR' && (
                 <p
                   className="muted"
-                  style={{
-                    fontSize:
-                      '.8rem',
-                  }}
+                  style={{ margin: '4px 0 0' }}
                 >
-                  Transaction
-                  ID:{' '}
-                  {order.transactionId ||
-                    '—'}
+                  {new Date(order.createdAt).toLocaleString()}
                 </p>
-              )}
+              </div>
 
-              {order.status ===
-                'Shipped' && (
-                <div
-                  className="notice sage"
-                  style={{
-                    marginTop:
-                      14,
-                  }}
-                >
-                  Your order has
-                  been shipped.
-                </div>
-              )}
+              <span className={`status ${tone(order.status)}`}>
+                {order.status}
+              </span>
+            </div>
 
-              {order.status ===
-                'Delivered' && (
-                <div
-                  className="notice sage"
-                  style={{
-                    marginTop:
-                      14,
-                  }}
-                >
-                  Your order has
-                  been delivered.
-                </div>
-              )}
-            </article>
-          )
-        )
+            {order.items.map((item, index) => (
+              <div
+                className="summary-row"
+                key={`${item.productId}-${index}`}
+              >
+                <span>
+                  {item.name} × {item.quantity}
+                </span>
+
+                <b>{money(item.price * item.quantity)}</b>
+              </div>
+            ))}
+
+            <div className="summary-row">
+              <span>Subtotal</span>
+              <b>{money(order.subtotal)}</b>
+            </div>
+
+            {order.discount > 0 && (
+              <div className="summary-row">
+                <span>Discount</span>
+                <b>−{money(order.discount)}</b>
+              </div>
+            )}
+
+            <div className="summary-row total">
+              <span>
+                Total · {order.paymentMethod}
+              </span>
+
+              <span>{money(order.total)}</span>
+            </div>
+
+            {order.paymentMethod === 'QR' && (
+              <p
+                className="muted"
+                style={{ fontSize: '.8rem' }}
+              >
+                Transaction ID: {order.transactionId || '—'}
+              </p>
+            )}
+
+            {order.status === 'Shipped' && (
+              <div
+                className="notice sage"
+                style={{ marginTop: 14 }}
+              >
+                Your order has been shipped.
+              </div>
+            )}
+
+            {order.status === 'Delivered' && (
+              <div
+                className="notice sage"
+                style={{ marginTop: 14 }}
+              >
+                Your order has been delivered.
+              </div>
+            )}
+          </article>
+        ))
       ) : (
         <div className="empty-state">
-          <h3>
-            No orders yet.
-          </h3>
+          <h3>No orders yet.</h3>
 
           <p className="muted">
-            Orders placed with
-            this account will
-            appear here.
+            Orders placed with this account will appear here.
           </p>
 
-          <Link
-            className="btn"
-            href="/shop"
-          >
+          <Link className="btn" href="/shop">
             Shop now
           </Link>
         </div>
