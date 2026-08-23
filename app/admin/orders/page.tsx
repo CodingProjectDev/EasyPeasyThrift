@@ -54,7 +54,10 @@ export default function AdminOrders() {
     setError('');
 
     try {
-      const response = await fetch('/api/admin/orders', { cache: 'no-store' });
+      const response = await fetch('/api/admin/orders', {
+        cache: 'no-store',
+      });
+
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
@@ -63,7 +66,11 @@ export default function AdminOrders() {
 
       setOrders(Array.isArray(payload.orders) ? payload.orders : []);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Could not load orders.');
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : 'Could not load orders.',
+      );
     } finally {
       setLoading(false);
     }
@@ -80,8 +87,13 @@ export default function AdminOrders() {
     try {
       const response = await fetch('/api/admin/orders', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, status }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId,
+          status,
+        }),
       });
 
       const payload = await response.json().catch(() => ({}));
@@ -91,10 +103,17 @@ export default function AdminOrders() {
       }
 
       setOrders((current) =>
-        current.map((order) => (order.id === orderId ? { ...order, status } : order)),
+        current.map((order) =>
+          order.id === orderId ? { ...order, status } : order,
+        ),
       );
     } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : 'Could not update order.');
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : 'Could not update order.',
+      );
+
       await loadOrders();
     } finally {
       setUpdatingId(null);
@@ -108,7 +127,8 @@ export default function AdminOrders() {
           <span className="eyebrow">Fulfillment + payment</span>
           <h1>Orders</h1>
           <p className="muted">
-            Live orders are loaded from Supabase. Verify QR proof before moving paid orders into processing.
+            Live orders are loaded from Supabase. Status changes are saved to
+            Supabase and shown to customers.
           </p>
         </div>
 
@@ -123,7 +143,13 @@ export default function AdminOrders() {
       </div>
 
       {error && (
-        <div className="notice" style={{ marginBottom: 16, color: '#9b4136' }}>
+        <div
+          className="notice"
+          style={{
+            marginBottom: 16,
+            color: '#9b4136',
+          }}
+        >
           {error}
         </div>
       )}
@@ -134,11 +160,17 @@ export default function AdminOrders() {
         </div>
       ) : orders.length ? (
         orders.map((order) => (
-          <article className="admin-card" style={{ marginBottom: 14 }} key={order.id}>
+          <article
+            className="admin-card"
+            style={{ marginBottom: 14 }}
+            key={order.id}
+          >
             <div className="order-head">
               <div>
                 <b>{order.id}</b>
-                <p className="muted">{new Date(order.createdAt).toLocaleString()}</p>
+                <p className="muted">
+                  {new Date(order.createdAt).toLocaleString()}
+                </p>
               </div>
 
               <select
@@ -146,7 +178,10 @@ export default function AdminOrders() {
                 value={order.status}
                 disabled={updatingId === order.id}
                 onChange={(event) =>
-                  void updateStatus(order.id, event.target.value as OrderStatus)
+                  void updateStatus(
+                    order.id,
+                    event.target.value as OrderStatus,
+                  )
                 }
               >
                 {statuses.map((status) => (
@@ -160,6 +195,7 @@ export default function AdminOrders() {
             <div className="admin-grid" style={{ marginTop: 0 }}>
               <div>
                 <h4>Customer</h4>
+
                 <p>
                   {order.customer.name}
                   <br />
@@ -167,16 +203,21 @@ export default function AdminOrders() {
                   <br />
                   {order.customer.phone}
                   <br />
-                  {order.customer.address}, {order.customer.city} {order.customer.postalCode}
+                  {order.customer.address}, {order.customer.city}{' '}
+                  {order.customer.postalCode}
                 </p>
 
                 <h4>Items</h4>
 
                 {order.items.map((item, index) => (
-                  <div className="summary-row" key={`${item.productId}-${index}`}>
+                  <div
+                    className="summary-row"
+                    key={`${item.productId}-${index}`}
+                  >
                     <span>
                       {item.name} × {item.quantity}
                     </span>
+
                     <b>{money(item.price * item.quantity)}</b>
                   </div>
                 ))}
@@ -201,6 +242,7 @@ export default function AdminOrders() {
 
               <div>
                 <h4>Payment</h4>
+
                 <p>
                   <b>{order.paymentMethod}</b>
                 </p>
@@ -235,7 +277,9 @@ export default function AdminOrders() {
                         />
                       </a>
                     ) : (
-                      <p className="muted">No payment proof preview is available.</p>
+                      <p className="muted">
+                        No payment proof preview is available.
+                      </p>
                     )}
 
                     <div className="inline-actions" style={{ marginTop: 12 }}>
@@ -243,7 +287,9 @@ export default function AdminOrders() {
                         type="button"
                         className="btn sage"
                         disabled={updatingId === order.id}
-                        onClick={() => void updateStatus(order.id, 'Approved')}
+                        onClick={() =>
+                          void updateStatus(order.id, 'Approved')
+                        }
                       >
                         Approve QR
                       </button>
@@ -252,7 +298,9 @@ export default function AdminOrders() {
                         type="button"
                         className="btn danger"
                         disabled={updatingId === order.id}
-                        onClick={() => void updateStatus(order.id, 'Payment Rejected')}
+                        onClick={() =>
+                          void updateStatus(order.id, 'Payment Rejected')
+                        }
                       >
                         Reject
                       </button>
