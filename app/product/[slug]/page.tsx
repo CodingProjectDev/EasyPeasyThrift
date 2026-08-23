@@ -242,42 +242,47 @@ export default function ProductPage() {
 
           {/* MEASUREMENTS */}
 
-          <div className="measurements">
-            <strong>
-              Measurements
-            </strong>
+          {Object.entries(product.measurements).some(
+  ([, value]) =>
+    value &&
+    value.trim() !== '' &&
+    value.toLowerCase() !== 'not listed',
+) && (
+  <div className="measurements">
+    <strong>
+      Measurements
+    </strong>
 
-            <p
-              className="muted"
-              style={{
-                fontSize: '.78rem',
-                marginTop: 5,
-              }}
-            >
-              Measured flat. Compare
-              with a piece you already
-              own.
-            </p>
+    <p
+      className="muted"
+      style={{
+        fontSize: '.78rem',
+        marginTop: 5,
+      }}
+    >
+      Measured flat. Compare with a piece
+      you already own.
+    </p>
 
-            {Object.entries(
-              product.measurements,
-            ).map(
-              ([key, value]) => (
-                <div
-                  className="measure-row"
-                  key={key}
-                >
-                  <span>
-                    {key}
-                  </span>
+    {Object.entries(product.measurements)
+      .filter(
+        ([, value]) =>
+          value &&
+          value.trim() !== '' &&
+          value.toLowerCase() !== 'not listed',
+      )
+      .map(([key, value]) => (
+        <div
+          className="measure-row"
+          key={key}
+        >
+          <span>{key}</span>
 
-                  <b>
-                    {value}
-                  </b>
-                </div>
-              ),
-            )}
-          </div>
+          <b>{value}</b>
+        </div>
+      ))}
+  </div>
+)}
 
           {/* INVENTORY MESSAGE */}
 
