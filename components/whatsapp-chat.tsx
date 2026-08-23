@@ -1,17 +1,27 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useStore } from '@/components/store-provider';
 
 export default function WhatsAppChat() {
+  const pathname = usePathname();
   const { settings } = useStore();
+
+  // Never show WhatsApp chat on admin pages
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
 
   if (!settings.storePhone) {
     return null;
   }
 
-  // WhatsApp requires only numbers, including country code.
-  // Example: +9779768303843 -> 9779768303843
+  // WhatsApp requires digits only
   const phone = settings.storePhone.replace(/\D/g, '');
+
+  if (!phone) {
+    return null;
+  }
 
   const message = encodeURIComponent(
     'Hi EasyPeasy-Thrift! I have a question about a product.',
