@@ -80,9 +80,10 @@ export default function Footer() {
             Our story
           </Link>
 
-          <Link href="/about#store-information">
+          <Link href="/store-information">
             Store information
           </Link>
+
 
           {(settings.instagramUrl || settings.tiktokUrl || settings.pinterestUrl) && (
             <div className="footer-socials">
