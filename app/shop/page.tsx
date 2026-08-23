@@ -25,8 +25,15 @@ function ShopContent() {
   const urlCategory =
     searchParams.get('category') || '';
 
-  const urlSort = searchParams.get('sort') || '';
-  const initialSort = ['featured', 'newest', 'price-low', 'price-high'].includes(urlSort)
+  const urlSort =
+    searchParams.get('sort') || '';
+
+  const initialSort = [
+    'featured',
+    'newest',
+    'price-low',
+    'price-high',
+  ].includes(urlSort)
     ? urlSort
     : 'featured';
 
@@ -53,17 +60,9 @@ function ShopContent() {
   const [showFilters, setShowFilters] =
     useState(false);
 
-  /*
-   * Keep category synchronized with
-   * header navigation.
-   *
-   * /shop
-   * /shop?category=Brand%20New%20Product
-   * /shop?category=Used%20Product
-   */
   useEffect(() => {
     setCategory(
-      urlCategory || 'All'
+      urlCategory || 'All',
     );
   }, [urlCategory]);
 
@@ -79,11 +78,14 @@ function ShopContent() {
       Array.from(
         new Set(
           products
-            .map((product) => product.brand)
-            .filter(Boolean)
-        )
+            .map(
+              (product) =>
+                product.brand,
+            )
+            .filter(Boolean),
+        ),
       ).sort(),
-    [products]
+    [products],
   );
 
   const sizes = useMemo(
@@ -91,11 +93,14 @@ function ShopContent() {
       Array.from(
         new Set(
           products
-            .map((product) => product.size)
-            .filter(Boolean)
-        )
+            .map(
+              (product) =>
+                product.size,
+            )
+            .filter(Boolean),
+        ),
       ).sort(),
-    [products]
+    [products],
   );
 
   const categories = useMemo(
@@ -103,23 +108,40 @@ function ShopContent() {
       Array.from(
         new Set(
           products
-            .map((product) => product.category)
-            .filter(Boolean)
-        )
+            .map(
+              (product) =>
+                product.category,
+            )
+            .filter(Boolean),
+        ),
       ).sort(),
-    [products]
+    [products],
   );
 
-  const storeMaxPrice = useMemo(() => {
-    const highest = products.reduce(
-      (current, product) => Math.max(current, product.price),
-      0,
-    );
+  const storeMaxPrice =
+    useMemo(() => {
+      const highest =
+        products.reduce(
+          (
+            current,
+            product,
+          ) =>
+            Math.max(
+              current,
+              product.price,
+            ),
+          0,
+        );
 
-    return Math.max(1000, Math.ceil(highest / 100) * 100);
-  }, [products]);
+      return Math.max(
+        1000,
+        Math.ceil(highest / 100) *
+          100,
+      );
+    }, [products]);
 
-  const effectiveMaxPrice = maxPrice ?? storeMaxPrice;
+  const effectiveMaxPrice =
+    maxPrice ?? storeMaxPrice;
 
   /*
    * FILTER PRODUCTS
@@ -131,12 +153,12 @@ function ShopContent() {
     const list = products.filter(
       (product) => {
         const matchesPrice =
-          product.price <= effectiveMaxPrice;
+          product.price <=
+          effectiveMaxPrice;
 
         const matchesCategory =
           category === 'All' ||
-          product.category
-            .toLowerCase() ===
+          product.category.toLowerCase() ===
             category.toLowerCase();
 
         const matchesSize =
@@ -153,13 +175,12 @@ function ShopContent() {
           product.brand === brand;
 
         const searchableText =
-          `${product.name} ${product.brand} ${product.category}`
-            .toLowerCase();
+          `${product.name} ${product.brand} ${product.category}`.toLowerCase();
 
         const matchesSearch =
           !search ||
           searchableText.includes(
-            search
+            search,
           );
 
         return (
@@ -170,34 +191,30 @@ function ShopContent() {
           matchesBrand &&
           matchesSearch
         );
-      }
+      },
     );
 
-    /*
-     * Never sort the original
-     * products array directly.
-     */
     const sorted = [...list];
 
     if (sort === 'price-low') {
       sorted.sort(
         (a, b) =>
-          a.price - b.price
+          a.price - b.price,
       );
     }
 
     if (sort === 'price-high') {
       sorted.sort(
         (a, b) =>
-          b.price - a.price
+          b.price - a.price,
       );
     }
 
     if (sort === 'newest') {
       sorted.sort((a, b) =>
         b.createdAt.localeCompare(
-          a.createdAt
-        )
+          a.createdAt,
+        ),
       );
     }
 
@@ -205,7 +222,7 @@ function ShopContent() {
       sorted.sort(
         (a, b) =>
           Number(b.featured) -
-          Number(a.featured)
+          Number(a.featured),
       );
     }
 
@@ -223,15 +240,10 @@ function ShopContent() {
 
   /*
    * CLEAR FILTERS
-   *
-   * If customer came from
-   * "Brand New Product" or
-   * "Used Product", keep that
-   * category selected.
    */
   function clearFilters() {
     setCategory(
-      urlCategory || 'All'
+      urlCategory || 'All',
     );
 
     setSize('All');
@@ -283,23 +295,16 @@ function ShopContent() {
   }
 
   /*
-   * FILTER PANEL
+   * FILTER CONTENT
+   *
+   * Important:
+   * This contains only the controls.
+   * Desktop and mobile wrappers are
+   * rendered separately below.
    */
-  const filters = (
-    <div
-      className="filter-panel"
-      style={
-        showFilters
-          ? {
-              display: 'block',
-              position: 'static',
-              marginBottom: 18,
-            }
-          : {}
-      }
-    >
+  const filterContent = (
+    <>
       {/* CATEGORY */}
-
       <div className="filter-group">
         <h4>Category</h4>
 
@@ -308,7 +313,7 @@ function ShopContent() {
           value={category}
           onChange={(event) =>
             setCategory(
-              event.target.value
+              event.target.value,
             )
           }
         >
@@ -324,13 +329,12 @@ function ShopContent() {
               >
                 {item}
               </option>
-            )
+            ),
           )}
         </select>
       </div>
 
       {/* PRICE */}
-
       <div className="filter-group">
         <h4>Price up to</h4>
 
@@ -343,8 +347,8 @@ function ShopContent() {
           onChange={(event) =>
             setMaxPrice(
               Number(
-                event.target.value
-              )
+                event.target.value,
+              ),
             )
           }
           style={{
@@ -359,7 +363,6 @@ function ShopContent() {
       </div>
 
       {/* SIZE */}
-
       <div className="filter-group">
         <h4>Size</h4>
 
@@ -368,7 +371,7 @@ function ShopContent() {
           value={size}
           onChange={(event) =>
             setSize(
-              event.target.value
+              event.target.value,
             )
           }
         >
@@ -376,19 +379,20 @@ function ShopContent() {
             All
           </option>
 
-          {sizes.map((item) => (
-            <option
-              key={item}
-              value={item}
-            >
-              {item}
-            </option>
-          ))}
+          {sizes.map(
+            (item) => (
+              <option
+                key={item}
+                value={item}
+              >
+                {item}
+              </option>
+            ),
+          )}
         </select>
       </div>
 
       {/* CONDITION */}
-
       <div className="filter-group">
         <h4>Condition</h4>
 
@@ -397,7 +401,7 @@ function ShopContent() {
           value={condition}
           onChange={(event) =>
             setCondition(
-              event.target.value
+              event.target.value,
             )
           }
         >
@@ -422,7 +426,6 @@ function ShopContent() {
       </div>
 
       {/* BRAND */}
-
       <div className="filter-group">
         <h4>Brand</h4>
 
@@ -431,7 +434,7 @@ function ShopContent() {
           value={brand}
           onChange={(event) =>
             setBrand(
-              event.target.value
+              event.target.value,
             )
           }
         >
@@ -439,19 +442,20 @@ function ShopContent() {
             All
           </option>
 
-          {brands.map((item) => (
-            <option
-              key={item}
-              value={item}
-            >
-              {item}
-            </option>
-          ))}
+          {brands.map(
+            (item) => (
+              <option
+                key={item}
+                value={item}
+              >
+                {item}
+              </option>
+            ),
+          )}
         </select>
       </div>
 
       {/* CLEAR */}
-
       <button
         type="button"
         className="btn ghost"
@@ -462,14 +466,16 @@ function ShopContent() {
       >
         Clear filters
       </button>
-    </div>
+    </>
   );
 
   if (!ready) {
     return (
       <div className="container content-page">
         <div className="empty-state">
-          <h3>Loading products…</h3>
+          <h3>
+            Loading products…
+          </h3>
         </div>
       </div>
     );
@@ -478,7 +484,6 @@ function ShopContent() {
   return (
     <div className="container">
       {/* HERO */}
-
       <div className="page-hero">
         <span className="eyebrow">
           {eyebrow}
@@ -490,13 +495,13 @@ function ShopContent() {
       </div>
 
       <div className="shop-layout">
-        {/* DESKTOP FILTER */}
-
-        {filters}
+        {/* DESKTOP FILTER ONLY */}
+        <aside className="filter-panel desktop-filter-panel">
+          {filterContent}
+        </aside>
 
         <div>
           {/* TOP BAR */}
-
           <div className="shop-topbar">
             <div className="search-wrap">
               <Search size={18} />
@@ -506,7 +511,7 @@ function ShopContent() {
                 value={q}
                 onChange={(event) =>
                   setQ(
-                    event.target.value
+                    event.target.value,
                   )
                 }
                 placeholder="Search products, brands, categories..."
@@ -514,13 +519,13 @@ function ShopContent() {
             </div>
 
             {/* MOBILE FILTER BUTTON */}
-
             <button
               type="button"
               className="btn ghost mobile-filter"
               onClick={() =>
                 setShowFilters(
-                  (value) => !value
+                  (value) =>
+                    !value,
                 )
               }
             >
@@ -528,11 +533,12 @@ function ShopContent() {
                 size={17}
               />
 
-              Filters
+              {showFilters
+                ? 'Hide filters'
+                : 'Filters'}
             </button>
 
             {/* SORT */}
-
             <select
               className="control"
               style={{
@@ -541,7 +547,7 @@ function ShopContent() {
               value={sort}
               onChange={(event) =>
                 setSort(
-                  event.target.value
+                  event.target.value,
                 )
               }
             >
@@ -563,12 +569,14 @@ function ShopContent() {
             </select>
           </div>
 
-          {/* MOBILE FILTER */}
-
-          {showFilters && filters}
+          {/* MOBILE FILTER ONLY */}
+          {showFilters && (
+            <div className="mobile-filter-panel">
+              {filterContent}
+            </div>
+          )}
 
           {/* RESULT COUNT */}
-
           <div className="result-count">
             {filtered.length}{' '}
             {filtered.length === 1
@@ -577,7 +585,6 @@ function ShopContent() {
           </div>
 
           {/* PRODUCTS */}
-
           {filtered.length > 0 ? (
             <ProductGrid
               products={filtered}
