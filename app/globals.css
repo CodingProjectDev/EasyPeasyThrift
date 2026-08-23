@@ -33,3 +33,81 @@
   opacity: 0.6;
   text-decoration: underline;
 }
+
+/* =========================================
+   MOVING ANNOUNCEMENT BAR
+   Right -> Left
+========================================= */
+
+.announcement {
+  width: 100%;
+  overflow: hidden;
+  background: #171715;
+  color: #ffffff;
+  white-space: nowrap;
+  position: relative;
+  z-index: 1000;
+}
+
+.announcement-track {
+  display: flex;
+  width: max-content;
+  animation: announcement-marquee 22s linear infinite;
+  will-change: transform;
+}
+
+.announcement-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-shrink: 0;
+  min-width: 100vw;
+  gap: 80px;
+}
+
+.announcement-item {
+  display: inline-block;
+  padding: 7px 40px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Right to Left animation */
+@keyframes announcement-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Pause when customer puts mouse over it */
+.announcement:hover .announcement-track {
+  animation-play-state: paused;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .announcement-track {
+    animation-duration: 18s;
+  }
+
+  .announcement-group {
+    gap: 50px;
+  }
+
+  .announcement-item {
+    padding: 6px 25px;
+    font-size: 12px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .announcement-track {
+    animation: none;
+  }
+}
