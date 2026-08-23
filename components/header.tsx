@@ -247,9 +247,9 @@ export default function Header() {
                 settings.storeName
               }
               style={{
-                height: 36,
+                height: 58,
                 width: 'auto',
-                maxWidth: 180,
+                maxWidth: 260,
                 objectFit:
                   'contain',
               }}
