@@ -11,6 +11,7 @@ alter table public.products
 -- Customer-facing store settings. Shipping is descriptive only; no fixed fee is
 -- automatically added to the online order total.
 alter table public.store_settings
+  add column if not exists announcement_text text,
   add column if not exists shipping_info text,
   add column if not exists instagram_url text,
   add column if not exists tiktok_url text,
@@ -20,28 +21,41 @@ alter table public.store_settings
 
 update public.store_settings
 set
+  announcement_text = coalesce(
+    announcement_text,
+    'Shipping: ' || coalesce(nullif(trim(shipping_info), ''), 'Depends on product and location') ||
+      ' • ' || coalesce(nullif(trim(tagline), ''), 'Secondhand. Standout. So Easy.')
+  ),
   shipping_fee = coalesce(shipping_fee, 0),
   free_shipping_threshold = coalesce(free_shipping_threshold, 0);
 
 alter table public.store_settings
+  alter column announcement_text set default 'Shipping: Depends on product and location • Secondhand. Standout. So Easy.',
+  alter column announcement_text set not null,
   alter column shipping_fee set default 0,
   alter column free_shipping_threshold set default 0,
   alter column shipping_info set default 'Depends on product and location';
 
 insert into public.store_settings (
   id,
+  announcement_text,
   shipping_info,
   shipping_fee,
   free_shipping_threshold
 )
 values (
   1,
+  'Shipping: Depends on product and location • Secondhand. Standout. So Easy.',
   'Depends on product and location',
   0,
   0
 )
 on conflict (id) do update
 set
+  announcement_text = coalesce(
+    public.store_settings.announcement_text,
+    excluded.announcement_text
+  ),
   shipping_info = coalesce(
     nullif(trim(public.store_settings.shipping_info), ''),
     'Depends on product and location'
@@ -435,6 +449,8 @@ notify pgrst, 'reload schema';
 select
   id,
   store_name,
+  tagline,
+  announcement_text,
   shipping_info,
   cod_enabled,
   qr_enabled,

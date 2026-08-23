@@ -197,14 +197,11 @@ export default function Header() {
 
   return (
     <>
-      <div className="announcement">
-        Shipping:{' '}
-        {settings.shippingInfo}
-
-        <span> • </span>
-
-        {settings.tagline}
-      </div>
+      {settings.announcementText.trim() && (
+        <div className="announcement">
+          {settings.announcementText}
+        </div>
+      )}
 
       <header className="site-header">
         <Link

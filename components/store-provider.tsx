@@ -21,6 +21,7 @@ const KEYS = {
 export type StoreSettings = {
   storeName: string;
   tagline: string;
+  announcementText: string;
   storeEmail: string;
   storePhone: string;
   shippingInfo: string;
@@ -37,6 +38,8 @@ export type StoreSettings = {
 const defaultSettings: StoreSettings = {
   storeName: 'EasyPeasy-Thrift',
   tagline: 'Secondhand. Standout. So Easy.',
+  announcementText:
+    'Shipping: Depends on product and location • Secondhand. Standout. So Easy.',
   storeEmail: '',
   storePhone: '',
   shippingInfo: 'Depends on product and location',
@@ -99,6 +102,12 @@ function settingsFromRow(row: any): StoreSettings {
   return {
     storeName: String(row?.store_name || defaultSettings.storeName),
     tagline: String(row?.tagline || defaultSettings.tagline),
+    announcementText:
+      typeof row?.announcement_text === 'string'
+        ? row.announcement_text
+        : `Shipping: ${String(row?.shipping_info || defaultSettings.shippingInfo)} • ${String(
+            row?.tagline || defaultSettings.tagline,
+          )}`,
     storeEmail: String(row?.store_email || ''),
     storePhone: String(row?.store_phone || ''),
     shippingInfo: String(row?.shipping_info || defaultSettings.shippingInfo),

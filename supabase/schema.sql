@@ -100,6 +100,7 @@ create table if not exists public.store_settings (
   id integer primary key default 1 check (id = 1),
   store_name text not null default 'EasyPeasy-Thrift',
   tagline text not null default 'Secondhand. Standout. So Easy.',
+  announcement_text text not null default 'Shipping: Depends on product and location • Secondhand. Standout. So Easy.',
   store_email text,
   store_phone text,
   logo_path text,
@@ -118,12 +119,20 @@ create table if not exists public.store_settings (
 
 insert into public.store_settings (
   id,
+  announcement_text,
   shipping_info,
   shipping_fee,
   free_shipping_threshold
 )
-values (1, 'Depends on product and location', 0, 0)
+values (
+  1,
+  'Shipping: Depends on product and location • Secondhand. Standout. So Easy.',
+  'Depends on product and location',
+  0,
+  0
+)
 on conflict (id) do update set
+  announcement_text = coalesce(public.store_settings.announcement_text, excluded.announcement_text),
   shipping_info = coalesce(nullif(trim(public.store_settings.shipping_info), ''), excluded.shipping_info),
   shipping_fee = 0,
   free_shipping_threshold = 0;

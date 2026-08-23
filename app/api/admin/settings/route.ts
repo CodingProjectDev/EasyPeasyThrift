@@ -47,6 +47,12 @@ function toClientSettings(row: any) {
       row?.tagline ||
         'Secondhand. Standout. So Easy.',
     ),
+    announcementText:
+      typeof row?.announcement_text === 'string'
+        ? row.announcement_text
+        : `Shipping: ${String(row?.shipping_info || 'Depends on product and location')} • ${String(
+            row?.tagline || 'Secondhand. Standout. So Easy.',
+          )}`,
     storeEmail: String(row?.store_email || ''),
     storePhone: String(row?.store_phone || ''),
     shippingInfo: String(
@@ -108,6 +114,10 @@ export async function POST(req: Request) {
       settings.tagline || '',
     ).trim();
 
+    const announcementText = String(
+      settings.announcementText ?? '',
+    ).trim();
+
     const storeEmail = String(
       settings.storeEmail || '',
     ).trim();
@@ -138,6 +148,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (announcementText.length > 160) {
+      return NextResponse.json(
+        { error: 'Announcement must be 160 characters or fewer.' },
+        { status: 400 },
+      );
+    }
+
     if (!shippingInfo) {
       return NextResponse.json(
         {
@@ -159,6 +176,7 @@ export async function POST(req: Request) {
       id: 1,
       store_name: storeName,
       tagline,
+      announcement_text: announcementText,
       store_email: storeEmail || null,
       store_phone: storePhone || null,
       shipping_info: shippingInfo,

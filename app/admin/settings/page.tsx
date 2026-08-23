@@ -181,6 +181,28 @@ export default function SettingsPage() {
             />
           </div>
 
+          <div className="full">
+            <label>Top announcement bar</label>
+
+            <input
+              value={draft.announcementText}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  announcementText:
+                    event.target.value,
+                })
+              }
+              maxLength={160}
+              placeholder="Flexible shipping • One-of-a-kind finds. Easy shopping."
+            />
+
+            <small className="muted">
+              This appears in the black bar at the top of the customer website.
+              Leave it blank to hide the announcement bar.
+            </small>
+          </div>
+
           <div>
             <label>Store email</label>
 
