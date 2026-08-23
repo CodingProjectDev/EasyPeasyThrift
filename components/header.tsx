@@ -197,11 +197,41 @@ export default function Header() {
 
   return (
     <>
-      {settings.announcementText.trim() && (
-        <div className="announcement">
+{settings.announcementText.trim() && (
+  <div
+    className="announcement"
+    role="region"
+    aria-label="Store announcement"
+  >
+    <div className="announcement-track">
+      <div className="announcement-group">
+        <span className="announcement-item">
           {settings.announcementText}
-        </div>
-      )}
+        </span>
+
+        <span
+          className="announcement-item"
+          aria-hidden="true"
+        >
+          {settings.announcementText}
+        </span>
+      </div>
+
+      <div
+        className="announcement-group"
+        aria-hidden="true"
+      >
+        <span className="announcement-item">
+          {settings.announcementText}
+        </span>
+
+        <span className="announcement-item">
+          {settings.announcementText}
+        </span>
+      </div>
+    </div>
+  </div>
+)}
 
       <header className="site-header">
         <Link
