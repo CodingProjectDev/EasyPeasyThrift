@@ -28,6 +28,7 @@ const {
   addToCart,
   recordRecent,
   recent,
+  ready,
 } = useStore();
 
   const product =
