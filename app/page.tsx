@@ -202,43 +202,48 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
-        <div className="container">
-          <div className="section-head">
-            <div>
-              <span className="eyebrow">
-                {settings.instagramUrl ? (
-                  <a
-                    href={settings.instagramUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Instagram
-                  </a>
-                ) : (
-                  'Store style'
-                )}
-              </span>
-              <h2>Styled in real life.</h2>
-            </div>
-          </div>
-          <div className="insta-grid">
-            {[
-              'photo-1515886657613-9f3515b0c78f',
-              'photo-1485968579580-b6d095142e6e',
-              'photo-1539109136881-3be0616acf4b',
-              'photo-1529139574466-a303027c1d8b',
-              'photo-1490481651871-ab68de25d43d',
-            ].map((id) => (
-              <img
-                key={id}
-                src={`https://images.unsplash.com/${id}?auto=format&fit=crop&w=600&q=80`}
-                alt="Thrift style inspiration"
-              />
-            ))}
-          </div>
-        </div>
-      </section>
+<section className="section">
+  <div className="container">
+    <div className="section-head">
+      <div>
+        <span className="eyebrow">
+          @easypeasy.thrift
+        </span>
+
+        <h2>
+          Styled in real life.
+        </h2>
+      </div>
+    </div>
+
+    <div className="insta-grid">
+      <img
+        src="/style-1.jpg"
+        alt="EasyPeasy thrift style 1"
+      />
+
+      <img
+        src="/style-2.jpg"
+        alt="EasyPeasy thrift style 2"
+      />
+
+      <img
+        src="/style-3.jpg"
+        alt="EasyPeasy thrift style 3"
+      />
+
+      <img
+        src="/style-4.jpg"
+        alt="EasyPeasy thrift style 4"
+      />
+
+      <img
+        src="/style-5.jpg"
+        alt="EasyPeasy thrift style 5"
+      />
+    </div>
+  </div>
+</section>
     </>
   );
 }
