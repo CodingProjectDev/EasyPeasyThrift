@@ -8,7 +8,6 @@ import {
 } from 'react';
 
 import Link from 'next/link';
-
 import {
   Check,
   QrCode,
@@ -70,61 +69,76 @@ export default function CheckoutPage() {
   const [authChecked, setAuthChecked] =
     useState(false);
 
-  /*
-   * CHECK LOGGED-IN CUSTOMER
-   */
   useEffect(() => {
     const supabase = createClient();
 
     async function loadUser() {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } =
+        await supabase.auth.getUser();
 
       setUserId(user?.id || null);
-      setUserEmail(user?.email || '');
+      setUserEmail(
+        user?.email || '',
+      );
       setAuthChecked(true);
     }
 
-    loadUser();
+    void loadUser();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUserId(
-          session?.user?.id || null
-        );
+    } =
+      supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          setUserId(
+            session?.user?.id ||
+              null,
+          );
 
-        setUserEmail(
-          session?.user?.email || ''
-        );
-      }
-    );
+          setUserEmail(
+            session?.user?.email ||
+              '',
+          );
+        },
+      );
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  /*
-   * ORDER TOTALS
-   */
+  useEffect(() => {
+    if (
+      !settings.codEnabled &&
+      settings.qrEnabled
+    ) {
+      setMethod('QR');
+    } else if (
+      settings.codEnabled &&
+      !settings.qrEnabled
+    ) {
+      setMethod('COD');
+    }
+  }, [
+    settings.codEnabled,
+    settings.qrEnabled,
+  ]);
+
   const subtotal =
     cartProducts.reduce(
       (sum, item) =>
         sum +
         item.product.price *
           item.quantity,
-      0
+      0,
     );
 
-  const shipping =
-    subtotal >=
-      settings.freeShippingThreshold ||
-    subtotal === 0
-      ? 0
-      : settings.shippingFee;
+  // Shipping is intentionally not calculated
+  // automatically. Admin provides customer-facing
+  // shipping information instead.
+  const shipping = 0;
 
   const validPromo =
     useMemo(() => {
@@ -135,34 +149,35 @@ export default function CheckoutPage() {
             promo
               .trim()
               .toLowerCase() &&
-          new Date(item.expiresAt) >=
-            new Date()
+          new Date(
+            item.expiresAt,
+          ) >= new Date(),
       );
     }, [promo, promos]);
 
   const discount =
     validPromo
-      ? validPromo.type === 'percentage'
+      ? validPromo.type ===
+        'percentage'
         ? (subtotal *
             validPromo.value) /
           100
         : Math.min(
             subtotal,
-            validPromo.value
+            validPromo.value,
           )
       : 0;
 
+  // Product total only. Shipping is confirmed
+  // separately based on product/location.
   const total = Math.max(
     0,
-    subtotal +
-      shipping -
-      discount
+    subtotal - discount,
   );
 
-  /*
-   * QR PAYMENT SCREENSHOT PREVIEW
-   */
-  function handleProof(file?: File) {
+  function handleProof(
+    file?: File,
+  ) {
     if (!file) {
       setProof(null);
       setProofPreview('');
@@ -176,39 +191,28 @@ export default function CheckoutPage() {
 
     reader.onload = () => {
       setProofPreview(
-        String(reader.result)
+        String(reader.result),
       );
     };
 
     reader.readAsDataURL(file);
   }
 
-  /*
-   * PLACE ORDER
-   */
   async function submit(
-    event: FormEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    /*
-     * IMPORTANT FIX:
-     *
-     * Read the HTML form BEFORE any await.
-     * event.currentTarget may no longer be
-     * available after asynchronous calls.
-     */
-    const formElement =
-      event.currentTarget;
-
+    // Read the form before any await.
     const form =
-      new FormData(formElement);
+      new FormData(
+        event.currentTarget,
+      );
 
-    /*
-     * Basic validation
-     */
     if (!cartProducts.length) {
-      alert('Your cart is empty.');
+      alert(
+        'Your cart is empty.',
+      );
       return;
     }
 
@@ -217,9 +221,8 @@ export default function CheckoutPage() {
       (!proof || !txid.trim())
     ) {
       alert(
-        'For QR Payment, upload payment proof and enter the transaction/reference ID.'
+        'For QR Payment, upload payment proof and enter the transaction/reference ID.',
       );
-
       return;
     }
 
@@ -229,9 +232,6 @@ export default function CheckoutPage() {
       const supabase =
         createClient();
 
-      /*
-       * Get logged-in Supabase session
-       */
       const {
         data: { session },
         error: sessionError,
@@ -244,7 +244,7 @@ export default function CheckoutPage() {
         !session.access_token
       ) {
         alert(
-          'Your login session has expired. Please login again.'
+          'Your login session has expired. Please login again.',
         );
 
         window.location.href =
@@ -253,35 +253,26 @@ export default function CheckoutPage() {
         return;
       }
 
-      /*
-       * READ CUSTOMER INFORMATION
-       *
-       * We use the FormData that was
-       * created BEFORE the await above.
-       */
       const customer = {
         name: String(
-          form.get('name') || ''
+          form.get('name') || '',
         ).trim(),
-
         email: String(
-          form.get('email') || ''
+          form.get('email') || '',
         ).trim(),
-
         phone: String(
-          form.get('phone') || ''
+          form.get('phone') || '',
         ).trim(),
-
         address: String(
-          form.get('address') || ''
+          form.get('address') || '',
         ).trim(),
-
         city: String(
-          form.get('city') || ''
+          form.get('city') || '',
         ).trim(),
-
         postalCode: String(
-          form.get('postalCode') || ''
+          form.get(
+            'postalCode',
+          ) || '',
         ).trim(),
       };
 
@@ -294,15 +285,12 @@ export default function CheckoutPage() {
         !customer.postalCode
       ) {
         throw new Error(
-          'Please complete all delivery details.'
+          'Please complete all delivery details.',
         );
       }
 
       let proofUrl = '';
 
-      /*
-       * QR PAYMENT PROOF UPLOAD
-       */
       if (
         method === 'QR' &&
         proof
@@ -312,7 +300,7 @@ export default function CheckoutPage() {
 
         uploadForm.append(
           'file',
-          proof
+          proof,
         );
 
         const proofResponse =
@@ -321,7 +309,7 @@ export default function CheckoutPage() {
             {
               method: 'POST',
               body: uploadForm,
-            }
+            },
           );
 
         const proofResult =
@@ -329,10 +317,12 @@ export default function CheckoutPage() {
             .json()
             .catch(() => ({}));
 
-        if (!proofResponse.ok) {
+        if (
+          !proofResponse.ok
+        ) {
           throw new Error(
             proofResult.error ||
-              'Payment proof upload failed.'
+              'Payment proof upload failed.',
           );
         }
 
@@ -341,14 +331,11 @@ export default function CheckoutPage() {
 
         if (!proofUrl) {
           throw new Error(
-            'Payment proof was uploaded but no storage path was returned.'
+            'Payment proof was uploaded but no storage path was returned.',
           );
         }
       }
 
-      /*
-       * CREATE ORDER OBJECT
-       */
       const order:
         Order & {
           userId: string;
@@ -356,15 +343,11 @@ export default function CheckoutPage() {
         id: `EP-${Date.now()
           .toString()
           .slice(-8)}`,
-
         createdAt:
           new Date().toISOString(),
-
         userId:
           session.user.id,
-
         customer,
-
         items:
           cartProducts.map(
             ({
@@ -373,110 +356,80 @@ export default function CheckoutPage() {
             }) => ({
               productId:
                 product.id,
-
               name:
                 product.name,
-
               price:
                 product.price,
-
               quantity,
-            })
+            }),
           ),
-
         subtotal,
         shipping,
         discount,
         total,
-
         paymentMethod:
           method,
-
         paymentProofName:
           proof?.name,
-
         paymentProofDataUrl:
           proofPreview,
-
         transactionId:
           method === 'QR'
             ? txid.trim()
             : undefined,
-
         status:
           method === 'QR'
             ? 'Payment Verification Required'
             : 'Pending',
       };
 
-      /*
-       * STOP REQUEST IF SERVER
-       * TAKES LONGER THAN 20 SECONDS
-       */
       const controller =
         new AbortController();
 
       const timeoutId =
         window.setTimeout(
-          () => {
-            controller.abort();
-          },
-          20000
+          () =>
+            controller.abort(),
+          20000,
         );
 
       let response: Response;
 
       try {
-        response =
-          await fetch(
-            '/api/orders',
-            {
-              method: 'POST',
-
-              headers: {
-                'Content-Type':
-                  'application/json',
-
-                Authorization:
-                  `Bearer ${session.access_token}`,
-              },
-
-              body:
-                JSON.stringify({
-                  ...order,
-
-                  paymentProofPath:
-                    proofUrl,
-
-                  promoCode:
-                    validPromo?.code ||
-                    null,
-                }),
-
-              signal:
-                controller.signal,
-            }
-          );
+        response = await fetch(
+          '/api/orders',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+              Authorization:
+                `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              ...order,
+              paymentProofPath:
+                proofUrl,
+              promoCode:
+                validPromo?.code ||
+                null,
+            }),
+            signal:
+              controller.signal,
+          },
+        );
       } finally {
         window.clearTimeout(
-          timeoutId
+          timeoutId,
         );
       }
 
-      /*
-       * READ SERVER RESPONSE
-       */
       const result =
         await response
           .json()
           .catch(() => ({}));
 
       if (!response.ok) {
-        console.error(
-          'ORDER API ERROR:',
-          result
-        );
-
         let errorMessage =
           result.error ||
           'Could not place order.';
@@ -492,31 +445,17 @@ export default function CheckoutPage() {
         }
 
         throw new Error(
-          errorMessage
+          errorMessage,
         );
       }
 
-      /*
-       * USE REAL SUPABASE ORDER ID
-       */
       if (result.orderId) {
-        order.id =
-          String(
-            result.orderId
-          );
+        order.id = String(
+          result.orderId,
+        );
       }
 
-      /*
-       * UPDATE LOCAL CUSTOMER STATE
-       *
-       * Only do this after Supabase
-       * successfully creates the order.
-       */
       placeLocalOrder(order);
-
-      /*
-       * SHOW SUCCESS PAGE
-       */
       setPlaced(order);
 
       window.scrollTo({
@@ -526,34 +465,29 @@ export default function CheckoutPage() {
     } catch (error) {
       console.error(
         'CHECKOUT ERROR:',
-        error
+        error,
       );
 
       if (
         error instanceof Error &&
-        error.name === 'AbortError'
+        error.name ===
+          'AbortError'
       ) {
         alert(
-          'The order request took too long. Please try again.'
+          'The order request took too long. Please try again.',
         );
       } else {
         alert(
           error instanceof Error
             ? error.message
-            : 'Could not place order.'
+            : 'Could not place order.',
         );
       }
     } finally {
-      /*
-       * ALWAYS STOP LOADING
-       */
       setBusy(false);
     }
   }
 
-  /*
-   * WAIT FOR AUTH
-   */
   if (!authChecked) {
     return (
       <div className="container content-page">
@@ -561,7 +495,6 @@ export default function CheckoutPage() {
           <h2>
             Loading checkout…
           </h2>
-
           <p className="muted">
             Checking your account.
           </p>
@@ -570,9 +503,6 @@ export default function CheckoutPage() {
     );
   }
 
-  /*
-   * CUSTOMER MUST LOGIN
-   */
   if (!userId) {
     return (
       <div className="container content-page">
@@ -612,9 +542,6 @@ export default function CheckoutPage() {
     );
   }
 
-  /*
-   * ORDER SUCCESS PAGE
-   */
   if (placed) {
     return (
       <div className="container content-page">
@@ -638,8 +565,19 @@ export default function CheckoutPage() {
           <p>
             {placed.paymentMethod ===
             'QR'
-              ? 'Your payment proof has been submitted successfully. Your payment is now waiting for admin verification.'
+              ? 'Your payment proof has been submitted successfully and is waiting for admin verification.'
               : 'Your Cash on Delivery order has been placed successfully and is now Pending.'}
+          </p>
+
+          <p>
+            <b>Shipping:</b>{' '}
+            {settings.shippingInfo}
+          </p>
+
+          <p className="muted">
+            The product total shown
+            online does not include a
+            fixed shipping fee.
           </p>
 
           <div
@@ -668,9 +606,6 @@ export default function CheckoutPage() {
     );
   }
 
-  /*
-   * EMPTY CART
-   */
   if (!cartProducts.length) {
     return (
       <div className="container content-page">
@@ -692,19 +627,14 @@ export default function CheckoutPage() {
 
   return (
     <div className="container">
-      {/* PAGE HEADER */}
-
       <div className="page-hero">
         <span className="eyebrow">
           Almost yours
         </span>
 
-        <h1>
-          Checkout.
-        </h1>
+        <h1>Checkout.</h1>
 
         <p>
-          No card forms here.
           Choose Cash on Delivery
           or pay by QR and upload
           your proof.
@@ -716,8 +646,6 @@ export default function CheckoutPage() {
         className="checkout-layout"
       >
         <div className="stack">
-          {/* DELIVERY DETAILS */}
-
           <section className="panel">
             <h3>
               Delivery details
@@ -809,8 +737,6 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          {/* PAYMENT METHOD */}
-
           <section className="panel">
             <h3>
               Payment method
@@ -884,16 +810,22 @@ export default function CheckoutPage() {
                     <p className="muted">
                       Scan the store
                       QR, pay, then
-                      upload proof
-                      for admin
-                      verification.
+                      upload proof.
                     </p>
                   </div>
                 </label>
               )}
             </div>
 
-            {/* QR PAYMENT */}
+            <div
+              className="notice"
+              style={{
+                marginTop: 16,
+              }}
+            >
+              <b>Shipping:</b>{' '}
+              {settings.shippingInfo}
+            </div>
 
             {method === 'QR' && (
               <div className="qr-box">
@@ -911,11 +843,11 @@ export default function CheckoutPage() {
                 </b>
 
                 <p className="muted">
-                  Then upload a clear
-                  screenshot and enter
-                  the exact
-                  transaction/reference
-                  ID.
+                  Product total below
+                  does not include a
+                  fixed shipping fee.
+                  Shipping is confirmed
+                  separately.
                 </p>
 
                 <div
@@ -939,7 +871,7 @@ export default function CheckoutPage() {
                     onChange={(event) =>
                       handleProof(
                         event.target
-                          .files?.[0]
+                          .files?.[0],
                       )
                     }
                   />
@@ -973,7 +905,7 @@ export default function CheckoutPage() {
                     onChange={(event) =>
                       setTxid(
                         event.target
-                          .value
+                          .value,
                       )
                     }
                     required={
@@ -986,8 +918,6 @@ export default function CheckoutPage() {
             )}
           </section>
         </div>
-
-        {/* ORDER SUMMARY */}
 
         <aside
           className="panel"
@@ -1016,11 +946,11 @@ export default function CheckoutPage() {
                 <b>
                   {money(
                     product.price *
-                      quantity
+                      quantity,
                   )}
                 </b>
               </div>
-            )
+            ),
           )}
 
           <hr
@@ -1031,30 +961,21 @@ export default function CheckoutPage() {
             }}
           />
 
-          {/* PROMO */}
-
           <div className="field">
             <label>
               Promo code
             </label>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: 8,
-              }}
-            >
-              <input
-                className="control"
-                value={promo}
-                onChange={(event) =>
-                  setPromo(
-                    event.target.value
-                  )
-                }
-                placeholder="EASY10"
-              />
-            </div>
+            <input
+              className="control"
+              value={promo}
+              onChange={(event) =>
+                setPromo(
+                  event.target.value,
+                )
+              }
+              placeholder="EASY10"
+            />
 
             {promo && (
               <small
@@ -1072,8 +993,6 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* TOTALS */}
-
           <div className="summary-row">
             <span>
               Subtotal
@@ -1089,10 +1008,15 @@ export default function CheckoutPage() {
               Shipping
             </span>
 
-            <b>
-              {shipping
-                ? money(shipping)
-                : 'Free'}
+            <b
+              style={{
+                textAlign: 'right',
+                maxWidth: 180,
+              }}
+            >
+              {
+                settings.shippingInfo
+              }
             </b>
           </div>
 
@@ -1110,7 +1034,7 @@ export default function CheckoutPage() {
 
           <div className="summary-row total">
             <span>
-              Total
+              Product total
             </span>
 
             <span>
@@ -1118,7 +1042,16 @@ export default function CheckoutPage() {
             </span>
           </div>
 
-          {/* PLACE ORDER BUTTON */}
+          <p
+            className="muted"
+            style={{
+              fontSize: '.75rem',
+              marginTop: 6,
+            }}
+          >
+            Shipping is not included
+            in the product total.
+          </p>
 
           <button
             type="submit"
