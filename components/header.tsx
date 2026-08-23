@@ -18,8 +18,8 @@ import { createClient } from '@/lib/supabase/client';
 
 const links = [
   ['Shop', '/shop'],
-  ['New In', '/shop?sort=newest'],
-  ['Vintage', '/shop?badge=vintage'],
+  ['Brand New Product', '/shop?category=Brand%20New%20Product'],
+  ['Used Product', '/shop?category=Used%20Product'],
   ['About', '/about'],
 ];
 
