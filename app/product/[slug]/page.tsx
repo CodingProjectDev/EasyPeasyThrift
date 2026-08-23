@@ -15,6 +15,8 @@ import { ProductImage } from '@/components/product-image';
 import { money } from '@/lib/format';
 
 export default function ProductPage() {
+  const router = useRouter();
+
   const { slug } =
     useParams<{ slug: string }>();
 
