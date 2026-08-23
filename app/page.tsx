@@ -55,9 +55,9 @@ export default function HomePage() {
 
           <div className="hero-media">
             <img
-              src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=88"
-              alt="Curated thrift clothing rack"
-            />
+  src="/hero-image.jpg"
+  alt="EasyPeasy-Thrift fashion"
+/>
             <div className="hero-sticker">
               one-of-one finds
               <br />
