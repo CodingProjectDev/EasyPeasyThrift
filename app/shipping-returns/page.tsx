@@ -1,4 +1,52 @@
-export default function Shipping(){return <div className="container"><article className="content-page"><span className="eyebrow">The practical stuff</span><h1>Shipping & Returns.</h1><h2>Shipping</h2><p>Orders are reviewed before processing. Once shipped, the order status can be updated to Shipped and then Delivered from the admin dashboard. Shipping rates and free-shipping thresholds can be changed under Admin → Settings.</p><h2>Returns</h2><p>All sales are final. Due to the unique and pre-owned nature of thrift items, EasyPeasy-Thrift does not accept returns, exchanges, or refunds after an order has been placed.
-Customers are responsible for reviewing the product photos, description, size, measurements, and condition details carefully before purchasing. By placing an order, the customer acknowledges and accepts the item's listed condition.
-No returns. No exchanges. No refunds. All sales are final.
-</p><h2>Condition accuracy</h2><p>Photograph and disclose meaningful flaws. “Good” should not be used to hide damage. Trust is more valuable than forcing a one-time sale.</p></article></div>}
+'use client';
+
+import { useStore } from '@/components/store-provider';
+
+export default function Shipping() {
+  const { settings } = useStore();
+
+  return (
+    <div className="container">
+      <article className="content-page">
+        <span className="eyebrow">
+          The practical stuff
+        </span>
+
+        <h1>Shipping & Returns.</h1>
+
+        <h2>Shipping</h2>
+
+        <p>
+          <b>Shipping fee:</b>{' '}
+          {settings.shippingInfo}
+        </p>
+
+        <p>
+          Shipping is confirmed separately based
+          on the product and delivery location.
+          The online product total does not
+          automatically add a fixed shipping fee.
+        </p>
+
+        <h2>Returns</h2>
+
+        <p
+          style={{
+            whiteSpace: 'pre-line',
+          }}
+        >
+          {settings.returnPolicy}
+        </p>
+
+        <h2>Condition accuracy</h2>
+
+        <p>
+          Product photos, descriptions, sizes,
+          measurements, and condition notes
+          should be reviewed carefully before
+          purchase.
+        </p>
+      </article>
+    </div>
+  );
+}
