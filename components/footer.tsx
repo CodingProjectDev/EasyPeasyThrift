@@ -117,10 +117,6 @@ export default function Footer() {
         <span>
           © 2026 {settings.storeName}
         </span>
-
-        <span>
-          {settings.shippingInfo}
-        </span>
       </div>
     </footer>
   );
