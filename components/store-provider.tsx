@@ -8,7 +8,6 @@ import React, {
   useState,
 } from 'react';
 
-import { demoProducts } from '@/lib/demo-data';
 import { productFromRow } from '@/lib/product-db';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -22,7 +21,6 @@ import {
 const KEYS = {
   cart: 'easypeasy_cart',
   wishlist: 'easypeasy_wishlist',
-  products: 'easypeasy_products',
   orders: 'easypeasy_orders',
   recent: 'easypeasy_recent',
   promos: 'easypeasy_promos',
@@ -118,10 +116,13 @@ function customerKey(base: string, userId: string | null) {
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [catalogSource, setCatalogSource] = useState<'supabase' | 'local'>('local');
   const [customerUserId, setCustomerUserId] = useState<string | null>(null);
 
-  const [products, setProducts] = useState<Product[]>(demoProducts);
+  // IMPORTANT:
+  // Products now come only from Supabase.
+  // No demoProducts/localStorage product fallback.
+  const [products, setProducts] = useState<Product[]>([]);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -138,10 +139,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setPromos(load(KEYS.promos, defaultPromos));
     setSettings(load(KEYS.settings, defaultSettings));
 
-    async function boot() {
-      // Production catalog comes from Supabase. This is the key fix:
-      // checkout and storefront now use the same product IDs/inventory.
-      const { data: dbProducts, error: productError } = await supabase
+    async function refreshProducts() {
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('active', true)
@@ -149,17 +148,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       if (!mounted) return;
 
-      if (!productError) {
-        setProducts((dbProducts || []).map(productFromRow));
-        setCatalogSource('supabase');
-      } else {
-        console.warn(
-          'Supabase catalog unavailable; using local demo catalog:',
-          productError.message,
-        );
-        setProducts(load(KEYS.products, demoProducts));
-        setCatalogSource('local');
+      if (error) {
+        console.error('Could not load products from Supabase:', error.message);
+        setProducts([]);
+        return;
       }
+
+      setProducts((data || []).map(productFromRow));
+    }
+
+    async function boot() {
+      await refreshProducts();
 
       const {
         data: { user },
@@ -168,42 +167,68 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       const id = user?.id || null;
+
       setCustomerUserId(id);
       setCart(load(customerKey(KEYS.cart, id), []));
       setWishlist(load(customerKey(KEYS.wishlist, id), []));
       setReady(true);
     }
 
-    boot();
+    void boot();
 
     const {
-      data: { subscription },
+      data: { subscription: authSubscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const id = session?.user?.id || null;
+
       setCustomerUserId(id);
       setCart(load(customerKey(KEYS.cart, id), []));
       setWishlist(load(customerKey(KEYS.wishlist, id), []));
     });
 
+    // Keep Admin and shopper catalog in sync when Supabase Realtime
+    // is enabled for the products table.
+    const productsChannel = supabase
+      .channel('easypeasy-products-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products',
+        },
+        () => {
+          void refreshProducts();
+        },
+      )
+      .subscribe();
+
+    // Also refresh when the user returns to the tab/window.
+    // This makes catalog changes appear even if Realtime is not enabled.
+    function handleFocus() {
+      void refreshProducts();
+    }
+
+    window.addEventListener('focus', handleFocus);
+
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      authSubscription.unsubscribe();
+      window.removeEventListener('focus', handleFocus);
+      void supabase.removeChannel(productsChannel);
     };
   }, []);
 
-  // Only use local product persistence when Supabase catalog is unavailable.
   useEffect(() => {
-    if (ready && catalogSource === 'local') {
-      localStorage.setItem(KEYS.products, JSON.stringify(products));
+    if (ready) {
+      localStorage.setItem(KEYS.orders, JSON.stringify(orders));
     }
-  }, [products, ready, catalogSource]);
-
-  useEffect(() => {
-    if (ready) localStorage.setItem(KEYS.orders, JSON.stringify(orders));
   }, [orders, ready]);
 
   useEffect(() => {
-    if (ready) localStorage.setItem(KEYS.recent, JSON.stringify(recent));
+    if (ready) {
+      localStorage.setItem(KEYS.recent, JSON.stringify(recent));
+    }
   }, [recent, ready]);
 
   useEffect(() => {
@@ -226,28 +251,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (id: string) => {
     const product = products.find((p) => p.id === id);
+
     if (!product || product.inventory < 1) return;
 
     setCart((prev) =>
-      prev.some((x) => x.productId === id)
-        ? prev.map((x) =>
-            x.productId === id
+      prev.some((item) => item.productId === id)
+        ? prev.map((item) =>
+            item.productId === id
               ? {
-                  ...x,
-                  quantity: Math.min(x.quantity + 1, product.inventory),
+                  ...item,
+                  quantity: Math.min(item.quantity + 1, product.inventory),
                 }
-              : x,
+              : item,
           )
         : [...prev, { productId: id, quantity: 1 }],
     );
   };
 
   const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((x) => x.productId !== id));
+    setCart((prev) => prev.filter((item) => item.productId !== id));
   };
 
   const updateQty = (id: string, qty: number) => {
     const product = products.find((p) => p.id === id);
+
     if (!product) return;
 
     if (qty <= 0) {
@@ -256,35 +283,42 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
 
     setCart((prev) =>
-      prev.map((x) =>
-        x.productId === id
-          ? { ...x, quantity: Math.min(qty, product.inventory) }
-          : x,
+      prev.map((item) =>
+        item.productId === id
+          ? {
+              ...item,
+              quantity: Math.min(qty, product.inventory),
+            }
+          : item,
       ),
     );
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+  };
 
   const toggleWishlist = (id: string) => {
     setWishlist((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+      prev.includes(id)
+        ? prev.filter((productId) => productId !== id)
+        : [...prev, id],
     );
   };
 
   const recordRecent = (id: string) => {
-    setRecent((prev) => [id, ...prev.filter((x) => x !== id)].slice(0, 6));
+    setRecent((prev) => [id, ...prev.filter((productId) => productId !== id)].slice(0, 6));
   };
 
   const placeLocalOrder = (order: Order) => {
     setOrders((prev) => [order, ...prev]);
 
-    // Supabase RPC already decrements database inventory.
-    // This state update makes the sold-out result visible immediately
-    // without waiting for a page refresh.
+    // The Supabase place_order RPC already changes database inventory.
+    // This only updates the current browser immediately.
     setProducts((prev) =>
       prev.map((product) => {
-        const line = order.items.find((x) => x.productId === product.id);
+        const line = order.items.find((item) => item.productId === product.id);
+
         if (!line) return product;
 
         return {
@@ -300,7 +334,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateOrderStatus = (id: string, status: OrderStatus) => {
-    const current = orders.find((o) => o.id === id);
+    const current = orders.find((order) => order.id === id);
 
     if (
       current &&
@@ -310,7 +344,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     ) {
       setProducts((prev) =>
         prev.map((product) => {
-          const line = current.items.find((i) => i.productId === product.id);
+          const line = current.items.find(
+            (item) => item.productId === product.id,
+          );
+
           if (!line) return product;
 
           return {
@@ -324,23 +361,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
 
     setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status } : o)),
+      prev.map((order) =>
+        order.id === id
+          ? {
+              ...order,
+              status,
+            }
+          : order,
+      ),
     );
   };
 
+  // These update the current UI immediately after the Admin API
+  // successfully saves/deletes the real Supabase product.
   const addProduct = (product: Product) => {
-    setProducts((prev) => [product, ...prev.filter((p) => p.id !== product.id)]);
+    setProducts((prev) => [
+      product,
+      ...prev.filter((item) => item.id !== product.id),
+    ]);
   };
 
   const updateProduct = (product: Product) => {
     setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? product : p)),
+      prev.map((item) => (item.id === product.id ? product : item)),
     );
   };
 
   const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    setCart((prev) => prev.filter((c) => c.productId !== id));
+    setProducts((prev) => prev.filter((product) => product.id !== id));
+    setCart((prev) => prev.filter((item) => item.productId !== id));
+    setWishlist((prev) => prev.filter((productId) => productId !== id));
   };
 
   const savePromos = (value: PromoCode[]) => {
@@ -357,17 +407,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     () =>
       cart
         .map((item) => ({
-          product: products.find((p) => p.id === item.productId),
+          product: products.find((product) => product.id === item.productId),
           quantity: item.quantity,
         }))
-        .filter((x) => x.product) as Array<{
+        .filter((item) => item.product) as Array<{
         product: Product;
         quantity: number;
       }>,
     [cart, products],
   );
 
-  const cartCount = cart.reduce((sum, x) => sum + x.quantity, 0);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <StoreContext.Provider
