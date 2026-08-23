@@ -20,15 +20,15 @@ export default function ProductPage() {
   const { slug } =
     useParams<{ slug: string }>();
 
-  const {
-    products,
-    wishlist,
-    toggleWishlist,
-    addToCart,
-    recordRecent,
-    recent,
-    ready,
-  } = useStore();
+const {
+  products,
+  cart,
+  wishlist,
+  toggleWishlist,
+  addToCart,
+  recordRecent,
+  recent,
+} = useStore();
 
   const product =
     products.find(
@@ -100,6 +100,22 @@ export default function ProductPage() {
 
   const sold =
     product.inventory <= 0;
+  function handleCheckoutNow() {
+  if (sold) {
+    return;
+  }
+
+  const alreadyInCart = cart.some(
+    (item) =>
+      item.productId === product.id
+  );
+
+  if (!alreadyInCart) {
+    addToCart(product.id);
+  }
+
+  router.push('/checkout');
+}
 
   return (
     <div className="container">
@@ -251,45 +267,48 @@ export default function ProductPage() {
           )}
 
           <div className="product-cta">
-            <button
-              disabled={sold}
-              className="btn sage"
-              onClick={() =>
-                addToCart(
-                  product.id
-                )
-              }
-            >
-              <ShoppingBag
-                size={18}
-              />
+  <button
+    type="button"
+    disabled={sold}
+    className="btn sage"
+    onClick={() =>
+      addToCart(product.id)
+    }
+  >
+    <ShoppingBag size={18} />
 
-              {sold
-                ? 'Sold Out'
-                : 'Add to cart'}
-            </button>
+    {sold
+      ? 'Sold Out'
+      : 'Add to cart'}
+  </button>
 
-            <button
-              className="btn ghost wishlist-square"
-              onClick={() =>
-                toggleWishlist(
-                  product.id
-                )
-              }
-              aria-label="Wishlist"
-            >
-              <Heart
-                size={19}
-                fill={
-                  wishlist.includes(
-                    product.id
-                  )
-                    ? 'currentColor'
-                    : 'none'
-                }
-              />
-            </button>
-          </div>
+  <button
+    type="button"
+    disabled={sold}
+    className="btn checkout-now"
+    onClick={handleCheckoutNow}
+  >
+    Checkout now
+  </button>
+
+  <button
+    type="button"
+    className="btn ghost wishlist-square"
+    onClick={() =>
+      toggleWishlist(product.id)
+    }
+    aria-label="Wishlist"
+  >
+    <Heart
+      size={19}
+      fill={
+        wishlist.includes(product.id)
+          ? 'currentColor'
+          : 'none'
+      }
+    />
+  </button>
+</div>
 
           {/* TikTok video link */}
           {product.tiktokUrl && (
