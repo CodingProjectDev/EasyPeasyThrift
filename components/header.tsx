@@ -39,7 +39,8 @@ const links = [
 ];
 
 export default function Header() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] =
+    useState(false);
 
   const [loggedIn, setLoggedIn] =
     useState(false);
@@ -61,9 +62,6 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
 
-  /*
-   * CHECK CUSTOMER LOGIN
-   */
   useEffect(() => {
     const supabase = createClient();
 
@@ -84,15 +82,15 @@ export default function Header() {
       supabase.auth.onAuthStateChange(
         (_event, session) => {
           setLoggedIn(
-            !!session?.user
+            !!session?.user,
           );
 
           if (!session?.user) {
             setAccountMenuOpen(
-              false
+              false,
             );
           }
-        }
+        },
       );
 
     return () => {
@@ -100,9 +98,7 @@ export default function Header() {
     };
   }, []);
 
-  /*
-   * CLOSE MENUS WHEN PAGE SCROLLS
-   */
+  // Close account/mobile menus while scrolling.
   useEffect(() => {
     function handleScroll() {
       setAccountMenuOpen(false);
@@ -112,31 +108,26 @@ export default function Header() {
     window.addEventListener(
       'scroll',
       handleScroll,
-      {
-        passive: true,
-      }
+      { passive: true },
     );
 
     return () => {
       window.removeEventListener(
         'scroll',
-        handleScroll
+        handleScroll,
       );
     };
   }, []);
 
-  /*
-   * CLOSE ACCOUNT MENU
-   * WHEN CLICKING OUTSIDE
-   */
+  // Close account menu when clicking outside.
   useEffect(() => {
     function handleOutsideClick(
-      event: MouseEvent
+      event: MouseEvent,
     ) {
       if (
         accountMenuRef.current &&
         !accountMenuRef.current.contains(
-          event.target as Node
+          event.target as Node,
         )
       ) {
         setAccountMenuOpen(false);
@@ -145,28 +136,22 @@ export default function Header() {
 
     document.addEventListener(
       'mousedown',
-      handleOutsideClick
+      handleOutsideClick,
     );
 
     return () => {
       document.removeEventListener(
         'mousedown',
-        handleOutsideClick
+        handleOutsideClick,
       );
     };
   }, []);
 
-  /*
-   * CLOSE MENUS WHEN PAGE CHANGES
-   */
   useEffect(() => {
     setAccountMenuOpen(false);
     setOpen(false);
   }, [pathname]);
 
-  /*
-   * ACCOUNT BUTTON
-   */
   function handleAccountClick() {
     if (!loggedIn) {
       router.push('/login');
@@ -174,13 +159,10 @@ export default function Header() {
     }
 
     setAccountMenuOpen(
-      (value) => !value
+      (value) => !value,
     );
   }
 
-  /*
-   * LOGOUT
-   */
   async function handleLogout() {
     const supabase =
       createClient();
@@ -191,7 +173,7 @@ export default function Header() {
     if (error) {
       console.error(
         'Logout error:',
-        error.message
+        error.message,
       );
       return;
     }
@@ -204,10 +186,6 @@ export default function Header() {
     router.refresh();
   }
 
-  /*
-   * DON'T SHOW CUSTOMER HEADER
-   * INSIDE ADMIN
-   */
   if (
     pathname.startsWith('/admin')
   ) {
@@ -216,23 +194,16 @@ export default function Header() {
 
   return (
     <>
-      {/* ANNOUNCEMENT */}
-
       <div className="announcement">
-        Free shipping on orders
-        Rs.1000+
+        Shipping:{' '}
+        {settings.shippingInfo}
 
         <span> • </span>
 
-        Every piece gets a second
-        story.
+        {settings.tagline}
       </div>
 
-      {/* MAIN HEADER */}
-
       <header className="site-header">
-        {/* BRAND */}
-
         <Link
           className="brand"
           href="/"
@@ -254,16 +225,9 @@ export default function Header() {
               }}
             />
           ) : (
-            <>
-              EasyPeasy
-              <span>
-                —Thrift
-              </span>
-            </>
+            settings.storeName
           )}
         </Link>
-
-        {/* DESKTOP NAVIGATION */}
 
         <nav className="desktop-nav">
           {links.map(
@@ -274,23 +238,17 @@ export default function Header() {
               >
                 {label}
               </Link>
-            )
+            ),
           )}
         </nav>
 
-        {/* HEADER ACTIONS */}
-
         <div className="header-actions">
-          {/* SEARCH */}
-
           <Link
             href="/shop"
             aria-label="Search"
           >
             <Search size={20} />
           </Link>
-
-          {/* WISHLIST */}
 
           <Link
             href="/wishlist"
@@ -308,8 +266,6 @@ export default function Header() {
               </b>
             )}
           </Link>
-
-          {/* ACCOUNT */}
 
           <div
             ref={accountMenuRef}
@@ -357,63 +313,45 @@ export default function Header() {
                   style={{
                     position:
                       'absolute',
-
                     top: '34px',
-
                     right: 0,
-
                     minWidth:
                       '170px',
-
                     background:
                       '#fffdf8',
-
                     border:
                       '1px solid #d8d4ca',
-
                     borderRadius:
                       '12px',
-
                     padding:
                       '8px',
-
                     boxShadow:
                       '0 12px 30px rgba(0,0,0,0.12)',
-
                     zIndex:
                       9999,
                   }}
                 >
-                  {/* MY ORDERS */}
-
                   <Link
                     href="/account/orders"
                     onClick={() =>
                       setAccountMenuOpen(
-                        false
+                        false,
                       )
                     }
                     style={{
                       display:
                         'flex',
-
                       alignItems:
                         'center',
-
                       gap: '9px',
-
                       padding:
                         '10px 12px',
-
                       borderRadius:
                         '8px',
-
                       textDecoration:
                         'none',
-
                       color:
                         'inherit',
-
                       fontWeight:
                         600,
                     }}
@@ -421,11 +359,8 @@ export default function Header() {
                     <ShoppingBag
                       size={17}
                     />
-
                     My Orders
                   </Link>
-
-                  {/* LOGOUT */}
 
                   <button
                     type="button"
@@ -435,39 +370,27 @@ export default function Header() {
                     style={{
                       width:
                         '100%',
-
                       display:
                         'flex',
-
                       alignItems:
                         'center',
-
                       gap: '9px',
-
                       padding:
                         '10px 12px',
-
                       border:
                         'none',
-
                       borderRadius:
                         '8px',
-
                       background:
                         'transparent',
-
                       cursor:
                         'pointer',
-
                       color:
                         '#9b4136',
-
                       fontWeight:
                         600,
-
                       fontSize:
                         'inherit',
-
                       textAlign:
                         'left',
                     }}
@@ -475,14 +398,11 @@ export default function Header() {
                     <LogOut
                       size={17}
                     />
-
                     Logout
                   </button>
                 </div>
               )}
           </div>
-
-          {/* CART */}
 
           <Link
             href="/cart"
@@ -494,13 +414,9 @@ export default function Header() {
             />
 
             {cartCount > 0 && (
-              <b>
-                {cartCount}
-              </b>
+              <b>{cartCount}</b>
             )}
           </Link>
-
-          {/* MOBILE MENU */}
 
           <button
             type="button"
@@ -508,11 +424,11 @@ export default function Header() {
             onClick={() => {
               setOpen(
                 (value) =>
-                  !value
+                  !value,
               );
 
               setAccountMenuOpen(
-                false
+                false,
               );
             }}
             aria-label="Menu"
@@ -525,8 +441,6 @@ export default function Header() {
           </button>
         </div>
       </header>
-
-      {/* MOBILE NAVIGATION */}
 
       {open && (
         <nav className="mobile-nav">
@@ -541,7 +455,7 @@ export default function Header() {
               >
                 {label}
               </Link>
-            )
+            ),
           )}
 
           <Link
@@ -572,21 +486,15 @@ export default function Header() {
                 style={{
                   background:
                     'none',
-
                   border:
                     'none',
-
                   padding: 0,
-
                   textAlign:
                     'left',
-
                   cursor:
                     'pointer',
-
                   font:
                     'inherit',
-
                   color:
                     '#9b4136',
                 }}
