@@ -20,6 +20,7 @@ import {
 } from 'next/navigation';
 
 import { useStore } from '@/components/store-provider';
+import { createClient } from '@/lib/supabase/client';
 
 type ChatAction = {
   label: string;
@@ -28,9 +29,10 @@ type ChatAction = {
 };
 
 type ChatMessage = {
-  id: number;
+  id: string;
   role: 'assistant' | 'customer';
   text: string;
+  greeting?: boolean;
   action?: ChatAction;
 };
 
@@ -54,13 +56,19 @@ export default function StoreAssistant() {
   const [input, setInput] =
     useState('');
 
+  const [
+    customerName,
+    setCustomerName,
+  ] = useState('');
+
   const [messages, setMessages] =
     useState<ChatMessage[]>([
       {
-        id: 1,
+        id: 'welcome',
         role: 'assistant',
         text:
           'Hi! 👋 How can I help you today?',
+        greeting: true,
       },
     ]);
 
@@ -70,7 +78,107 @@ export default function StoreAssistant() {
     );
 
   /*
-   * Automatically scroll to newest message
+   * Load logged-in customer's name
+   */
+  useEffect(() => {
+    const supabase =
+      createClient();
+
+    let active = true;
+
+    async function loadNameFromUser(
+      user: any,
+    ) {
+      if (!user) {
+        if (active) {
+          setCustomerName('');
+        }
+
+        return;
+      }
+
+      /*
+       * First try the name stored
+       * in Supabase Auth metadata.
+       */
+      let name = String(
+        user.user_metadata
+          ?.full_name ||
+          user.user_metadata?.name ||
+          '',
+      ).trim();
+
+      /*
+       * If there is no name in Auth,
+       * try the customer's most recent order.
+       */
+      if (!name) {
+        const {
+          data: latestOrder,
+        } = await supabase
+          .from('orders')
+          .select('full_name')
+          .eq(
+            'customer_id',
+            user.id,
+          )
+          .order('created_at', {
+            ascending: false,
+          })
+          .limit(1)
+          .maybeSingle();
+
+        name = String(
+          latestOrder?.full_name ||
+            '',
+        ).trim();
+      }
+
+      if (active) {
+        setCustomerName(name);
+      }
+    }
+
+    async function loadCustomer() {
+      const {
+        data: { user },
+      } =
+        await supabase.auth.getUser();
+
+      await loadNameFromUser(
+        user,
+      );
+    }
+
+    void loadCustomer();
+
+    const {
+      data: { subscription },
+    } =
+      supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (
+            !session?.user
+          ) {
+            setCustomerName('');
+            return;
+          }
+
+          void loadNameFromUser(
+            session.user,
+          );
+        },
+      );
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  /*
+   * Automatically scroll to
+   * the newest message.
    */
   useEffect(() => {
     if (!messagesRef.current) {
@@ -78,11 +186,13 @@ export default function StoreAssistant() {
     }
 
     messagesRef.current.scrollTop =
-      messagesRef.current.scrollHeight;
+      messagesRef.current
+        .scrollHeight;
   }, [messages]);
 
   /*
-   * Do not show assistant inside admin
+   * Do not display assistant
+   * inside admin pages.
    */
   if (
     pathname.startsWith('/admin')
@@ -91,8 +201,16 @@ export default function StoreAssistant() {
   }
 
   /*
-   * Find the real Kids category dynamically
-   * from products instead of hard-coding it.
+   * Generate a unique message ID.
+   */
+  function createMessageId() {
+    return `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}`;
+  }
+
+  /*
+   * Find Kids category dynamically.
    */
   const kidsCategory =
     Array.from(
@@ -111,8 +229,8 @@ export default function StoreAssistant() {
     );
 
   /*
-   * Open WhatsApp using phone number
-   * configured by admin in Store Settings.
+   * Open WhatsApp using the
+   * phone configured by admin.
    */
   function openWhatsApp() {
     const rawPhone = String(
@@ -126,7 +244,8 @@ export default function StoreAssistant() {
       addAssistantMessage(
         'Store WhatsApp is not available right now. Please use the Contact page instead.',
         {
-          label: 'Contact Store',
+          label:
+            'Contact Store',
           path: '/contact',
         },
       );
@@ -136,7 +255,10 @@ export default function StoreAssistant() {
 
     const message =
       encodeURIComponent(
-        `Hi ${settings.storeName || 'EasyPeasy-Thrift'}! I need help with my shopping.`,
+        `Hi ${
+          settings.storeName ||
+          'EasyPeasy-Thrift'
+        }! I need help with my shopping.`,
       );
 
     const url =
@@ -149,24 +271,28 @@ export default function StoreAssistant() {
     );
   }
 
+  /*
+   * Add assistant message.
+   */
   function addAssistantMessage(
     text: string,
     action?: ChatAction,
   ) {
-    setMessages((current) => [
-      ...current,
-      {
-        id: Date.now(),
-        role: 'assistant',
-        text,
-        action,
-      },
-    ]);
+    setMessages(
+      (current) => [
+        ...current,
+        {
+          id: createMessageId(),
+          role: 'assistant',
+          text,
+          action,
+        },
+      ],
+    );
   }
 
   /*
-   * Your own assistant "brain".
-   * Add more rules here anytime.
+   * EasyPeasy Assistant brain.
    */
   function understand(
     message: string,
@@ -223,7 +349,8 @@ export default function StoreAssistant() {
         text:
           'You can check your latest order status in My Orders.',
         action: {
-          label: 'View My Orders',
+          label:
+            'View My Orders',
           path:
             '/account/orders',
         },
@@ -257,7 +384,9 @@ export default function StoreAssistant() {
      * WISHLIST
      */
     if (
-      text.includes('wishlist') ||
+      text.includes(
+        'wishlist',
+      ) ||
       text.includes(
         'favorite',
       ) ||
@@ -335,7 +464,8 @@ export default function StoreAssistant() {
         text:
           'Cash on Delivery lets you place the order first and pay when the order is delivered.',
         action: {
-          label: 'Start Shopping',
+          label:
+            'Start Shopping',
           path: '/shop',
         },
       };
@@ -430,9 +560,7 @@ export default function StoreAssistant() {
      */
     if (
       text.includes('return') ||
-      text.includes(
-        'refund',
-      )
+      text.includes('refund')
     ) {
       return {
         text:
@@ -526,13 +654,14 @@ export default function StoreAssistant() {
       text === 'hey'
     ) {
       return {
-        text:
-          'Hi! 👋 I can help you find products, check orders, understand shipping, or connect you with a real person.',
+        text: customerName
+          ? `Hi ${customerName}! 👋 I can help you find products, check orders, understand shipping, or connect you with a real person.`
+          : 'Hi! 👋 I can help you find products, check orders, understand shipping, or connect you with a real person.',
       };
     }
 
     /*
-     * DEFAULT ANSWER
+     * DEFAULT
      */
     return {
       text:
@@ -540,6 +669,9 @@ export default function StoreAssistant() {
     };
   }
 
+  /*
+   * Handle navigation or WhatsApp action.
+   */
   function handleAction(
     action: ChatAction,
   ) {
@@ -550,10 +682,15 @@ export default function StoreAssistant() {
 
     if (action.path) {
       setOpen(false);
-      router.push(action.path);
+      router.push(
+        action.path,
+      );
     }
   }
 
+  /*
+   * Send customer message.
+   */
   function sendMessage(
     message: string,
   ) {
@@ -564,14 +701,16 @@ export default function StoreAssistant() {
       return;
     }
 
-    setMessages((current) => [
-      ...current,
-      {
-        id: Date.now(),
-        role: 'customer',
-        text: trimmed,
-      },
-    ]);
+    setMessages(
+      (current) => [
+        ...current,
+        {
+          id: createMessageId(),
+          role: 'customer',
+          text: trimmed,
+        },
+      ],
+    );
 
     const reply =
       understand(trimmed);
@@ -584,6 +723,9 @@ export default function StoreAssistant() {
     }, 150);
   }
 
+  /*
+   * Submit typed message.
+   */
   function submit(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -608,8 +750,7 @@ export default function StoreAssistant() {
       {open && (
         <div
           style={{
-            position:
-              'fixed',
+            position: 'fixed',
             right: 16,
             bottom: 82,
             width:
@@ -624,10 +765,8 @@ export default function StoreAssistant() {
             boxShadow:
               '0 20px 50px rgba(0,0,0,.22)',
             zIndex: 9999,
-            overflow:
-              'hidden',
-            display:
-              'grid',
+            overflow: 'hidden',
+            display: 'grid',
             gridTemplateRows:
               'auto auto 1fr auto',
           }}
@@ -836,7 +975,25 @@ export default function StoreAssistant() {
                         1.45,
                     }}
                   >
-                    {message.text}
+                    {message.greeting ? (
+                      <>
+                        Hi! 👋{' '}
+
+                        {customerName && (
+                          <>
+                            <strong>
+                              {customerName}
+                            </strong>
+                            {', '}
+                          </>
+                        )}
+
+                        How can I help you
+                        today?
+                      </>
+                    ) : (
+                      message.text
+                    )}
                   </div>
 
                   {message.action && (
@@ -848,8 +1005,7 @@ export default function StoreAssistant() {
                         )
                       }
                       style={{
-                        marginTop:
-                          7,
+                        marginTop: 7,
                         border: 0,
                         borderRadius:
                           999,
@@ -922,8 +1078,7 @@ export default function StoreAssistant() {
               placeholder="How can I help?"
               maxLength={180}
               style={{
-                width:
-                  '100%',
+                width: '100%',
                 minWidth: 0,
                 border:
                   '1px solid #d8d4ca',
@@ -931,10 +1086,8 @@ export default function StoreAssistant() {
                   999,
                 padding:
                   '11px 14px',
-                outline:
-                  'none',
-                font:
-                  'inherit',
+                outline: 'none',
+                font: 'inherit',
               }}
             />
 
@@ -984,8 +1137,7 @@ export default function StoreAssistant() {
         }
         aria-label="EasyPeasy shopping assistant"
         style={{
-          position:
-            'fixed',
+          position: 'fixed',
           right: 16,
           bottom: 18,
           zIndex: 9998,
@@ -997,12 +1149,9 @@ export default function StoreAssistant() {
           background:
             '#5f735d',
           color: 'white',
-          fontWeight:
-            800,
-          cursor:
-            'pointer',
-          display:
-            'flex',
+          fontWeight: 800,
+          cursor: 'pointer',
+          display: 'flex',
           alignItems:
             'center',
           gap: 8,
@@ -1020,9 +1169,6 @@ export default function StoreAssistant() {
   );
 }
 
-/*
- * Small reusable quick-button.
- */
 function QuickButton({
   label,
   onClick,
