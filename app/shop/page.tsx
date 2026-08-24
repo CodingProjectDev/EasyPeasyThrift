@@ -37,28 +37,42 @@ function ShopContent() {
     ? urlSort
     : 'featured';
 
-  const [q, setQ] = useState('');
+  const [q, setQ] =
+    useState('');
 
-  const [category, setCategory] =
-    useState(urlCategory || 'All');
+  const [
+    category,
+    setCategory,
+  ] = useState(
+    urlCategory || 'All',
+  );
 
   const [size, setSize] =
     useState('All');
 
-  const [condition, setCondition] =
-    useState('All');
+  const [
+    condition,
+    setCondition,
+  ] = useState('All');
 
   const [brand, setBrand] =
     useState('All');
 
-  const [maxPrice, setMaxPrice] =
-    useState<number | null>(null);
+  const [
+    maxPrice,
+    setMaxPrice,
+  ] =
+    useState<number | null>(
+      null,
+    );
 
   const [sort, setSort] =
     useState(initialSort);
 
-  const [showFilters, setShowFilters] =
-    useState(false);
+  const [
+    showFilters,
+    setShowFilters,
+  ] = useState(false);
 
   useEffect(() => {
     setCategory(
@@ -103,20 +117,21 @@ function ShopContent() {
     [products],
   );
 
-  const categories = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          products
-            .map(
-              (product) =>
-                product.category,
-            )
-            .filter(Boolean),
-        ),
-      ).sort(),
-    [products],
-  );
+  const categories =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            products
+              .map(
+                (product) =>
+                  product.category,
+              )
+              .filter(Boolean),
+          ),
+        ).sort(),
+      [products],
+    );
 
   const storeMaxPrice =
     useMemo(() => {
@@ -135,8 +150,9 @@ function ShopContent() {
 
       return Math.max(
         1000,
-        Math.ceil(highest / 100) *
-          100,
+        Math.ceil(
+          highest / 100,
+        ) * 100,
       );
     }, [products]);
 
@@ -146,97 +162,124 @@ function ShopContent() {
   /*
    * FILTER PRODUCTS
    */
-  const filtered = useMemo(() => {
-    const search =
-      q.trim().toLowerCase();
+  const filtered =
+    useMemo(() => {
+      const search = q
+        .trim()
+        .toLowerCase();
 
-    const list = products.filter(
-      (product) => {
-        const matchesPrice =
-          product.price <=
-          effectiveMaxPrice;
+      const list =
+        products.filter(
+          (product) => {
+            const matchesPrice =
+              product.price <=
+              effectiveMaxPrice;
 
-        const matchesCategory =
-          category === 'All' ||
-          product.category.toLowerCase() ===
-            category.toLowerCase();
+            const matchesCategory =
+              category ===
+                'All' ||
+              product.category.toLowerCase() ===
+                category.toLowerCase();
 
-        const matchesSize =
-          size === 'All' ||
-          product.size === size;
+            const matchesSize =
+              size === 'All' ||
+              product.size ===
+                size;
 
-        const matchesCondition =
-          condition === 'All' ||
-          product.condition ===
-            condition;
+            const matchesCondition =
+              condition ===
+                'All' ||
+              product.condition ===
+                condition;
 
-        const matchesBrand =
-          brand === 'All' ||
-          product.brand === brand;
+            const matchesBrand =
+              brand === 'All' ||
+              product.brand ===
+                brand;
 
-        const searchableText =
-          `${product.name} ${product.brand} ${product.category}`.toLowerCase();
+            const searchableText =
+              `${product.name} ${product.brand} ${product.category}`.toLowerCase();
 
-        const matchesSearch =
-          !search ||
-          searchableText.includes(
-            search,
-          );
+            const matchesSearch =
+              !search ||
+              searchableText.includes(
+                search,
+              );
 
-        return (
-          matchesPrice &&
-          matchesCategory &&
-          matchesSize &&
-          matchesCondition &&
-          matchesBrand &&
-          matchesSearch
+            return (
+              matchesPrice &&
+              matchesCategory &&
+              matchesSize &&
+              matchesCondition &&
+              matchesBrand &&
+              matchesSearch
+            );
+          },
         );
-      },
-    );
 
-    const sorted = [...list];
+      const sorted = [
+        ...list,
+      ];
 
-    if (sort === 'price-low') {
-      sorted.sort(
-        (a, b) =>
-          a.price - b.price,
-      );
-    }
+      if (
+        sort ===
+        'price-low'
+      ) {
+        sorted.sort(
+          (a, b) =>
+            a.price -
+            b.price,
+        );
+      }
 
-    if (sort === 'price-high') {
-      sorted.sort(
-        (a, b) =>
-          b.price - a.price,
-      );
-    }
+      if (
+        sort ===
+        'price-high'
+      ) {
+        sorted.sort(
+          (a, b) =>
+            b.price -
+            a.price,
+        );
+      }
 
-    if (sort === 'newest') {
-      sorted.sort((a, b) =>
-        b.createdAt.localeCompare(
-          a.createdAt,
-        ),
-      );
-    }
+      if (
+        sort === 'newest'
+      ) {
+        sorted.sort(
+          (a, b) =>
+            b.createdAt.localeCompare(
+              a.createdAt,
+            ),
+        );
+      }
 
-    if (sort === 'featured') {
-      sorted.sort(
-        (a, b) =>
-          Number(b.featured) -
-          Number(a.featured),
-      );
-    }
+      if (
+        sort ===
+        'featured'
+      ) {
+        sorted.sort(
+          (a, b) =>
+            Number(
+              b.featured,
+            ) -
+            Number(
+              a.featured,
+            ),
+        );
+      }
 
-    return sorted;
-  }, [
-    products,
-    q,
-    category,
-    size,
-    condition,
-    brand,
-    effectiveMaxPrice,
-    sort,
-  ]);
+      return sorted;
+    }, [
+      products,
+      q,
+      category,
+      size,
+      condition,
+      brand,
+      effectiveMaxPrice,
+      sort,
+    ]);
 
   /*
    * CLEAR FILTERS
@@ -247,10 +290,15 @@ function ShopContent() {
     );
 
     setSize('All');
+
     setCondition('All');
+
     setBrand('All');
+
     setMaxPrice(null);
+
     setQ('');
+
     setSort(initialSort);
   }
 
@@ -297,177 +345,282 @@ function ShopContent() {
   /*
    * FILTER CONTENT
    *
-   * Important:
-   * This contains only the controls.
-   * Desktop and mobile wrappers are
-   * rendered separately below.
+   * Prefix keeps desktop and mobile
+   * element IDs unique.
    */
-  const filterContent = (
-    <>
-      {/* CATEGORY */}
-      <div className="filter-group">
-        <h4>Category</h4>
+  function renderFilterContent(
+    prefix:
+      | 'desktop'
+      | 'mobile',
+  ) {
+    const categoryId =
+      `${prefix}-category-filter`;
 
-        <select
-          className="control"
-          value={category}
-          onChange={(event) =>
-            setCategory(
-              event.target.value,
-            )
-          }
-        >
-          <option value="All">
-            All
-          </option>
+    const priceId =
+      `${prefix}-price-filter`;
 
-          {categories.map(
-            (item) => (
-              <option
-                key={item}
-                value={item}
-              >
-                {item}
-              </option>
-            ),
-          )}
-        </select>
-      </div>
+    const sizeId =
+      `${prefix}-size-filter`;
 
-      {/* PRICE */}
-      <div className="filter-group">
-        <h4>Price up to</h4>
+    const conditionId =
+      `${prefix}-condition-filter`;
 
-        <input
-          type="range"
-          min="0"
-          max={storeMaxPrice}
-          step="100"
-          value={effectiveMaxPrice}
-          onChange={(event) =>
-            setMaxPrice(
-              Number(
-                event.target.value,
+    const brandId =
+      `${prefix}-brand-filter`;
+
+    return (
+      <>
+        {/* CATEGORY */}
+
+        <div className="filter-group">
+          <label
+            htmlFor={
+              categoryId
+            }
+          >
+            <h4>
+              Category
+            </h4>
+          </label>
+
+          <select
+            id={categoryId}
+            name={`${prefix}-category`}
+            className="control"
+            value={category}
+            onChange={(
+              event,
+            ) =>
+              setCategory(
+                event.target
+                  .value,
+              )
+            }
+          >
+            <option value="All">
+              All
+            </option>
+
+            {categories.map(
+              (item) => (
+                <option
+                  key={item}
+                  value={item}
+                >
+                  {item}
+                </option>
               ),
-            )
-          }
+            )}
+          </select>
+        </div>
+
+        {/* PRICE */}
+
+        <div className="filter-group">
+          <label
+            htmlFor={
+              priceId
+            }
+          >
+            <h4>
+              Price up to
+            </h4>
+          </label>
+
+          <input
+            id={priceId}
+            name={`${prefix}-max-price`}
+            type="range"
+            min="0"
+            max={
+              storeMaxPrice
+            }
+            step="100"
+            value={
+              effectiveMaxPrice
+            }
+            onChange={(
+              event,
+            ) =>
+              setMaxPrice(
+                Number(
+                  event.target
+                    .value,
+                ),
+              )
+            }
+            style={{
+              width: '100%',
+            }}
+          />
+
+          <div
+            aria-live="polite"
+            style={{
+              marginTop: 8,
+            }}
+          >
+            Rs.{' '}
+            {effectiveMaxPrice.toLocaleString()}
+          </div>
+        </div>
+
+        {/* SIZE */}
+
+        <div className="filter-group">
+          <label
+            htmlFor={sizeId}
+          >
+            <h4>
+              Size
+            </h4>
+          </label>
+
+          <select
+            id={sizeId}
+            name={`${prefix}-size`}
+            className="control"
+            value={size}
+            onChange={(
+              event,
+            ) =>
+              setSize(
+                event.target
+                  .value,
+              )
+            }
+          >
+            <option value="All">
+              All
+            </option>
+
+            {sizes.map(
+              (item) => (
+                <option
+                  key={item}
+                  value={item}
+                >
+                  {item}
+                </option>
+              ),
+            )}
+          </select>
+        </div>
+
+        {/* CONDITION */}
+
+        <div className="filter-group">
+          <label
+            htmlFor={
+              conditionId
+            }
+          >
+            <h4>
+              Condition
+            </h4>
+          </label>
+
+          <select
+            id={
+              conditionId
+            }
+            name={`${prefix}-condition`}
+            className="control"
+            value={
+              condition
+            }
+            onChange={(
+              event,
+            ) =>
+              setCondition(
+                event.target
+                  .value,
+              )
+            }
+          >
+            <option value="All">
+              All
+            </option>
+
+            {[
+              'Like New',
+              'Excellent',
+              'Good',
+              'Fair',
+            ].map(
+              (item) => (
+                <option
+                  key={item}
+                  value={item}
+                >
+                  {item}
+                </option>
+              ),
+            )}
+          </select>
+        </div>
+
+        {/* BRAND */}
+
+        <div className="filter-group">
+          <label
+            htmlFor={
+              brandId
+            }
+          >
+            <h4>
+              Brand
+            </h4>
+          </label>
+
+          <select
+            id={brandId}
+            name={`${prefix}-brand`}
+            className="control"
+            value={brand}
+            onChange={(
+              event,
+            ) =>
+              setBrand(
+                event.target
+                  .value,
+              )
+            }
+          >
+            <option value="All">
+              All
+            </option>
+
+            {brands.map(
+              (item) => (
+                <option
+                  key={item}
+                  value={item}
+                >
+                  {item}
+                </option>
+              ),
+            )}
+          </select>
+        </div>
+
+        {/* CLEAR */}
+
+        <button
+          type="button"
+          className="btn ghost"
           style={{
             width: '100%',
           }}
-        />
-
-        <label>
-          Rs.{' '}
-          {effectiveMaxPrice.toLocaleString()}
-        </label>
-      </div>
-
-      {/* SIZE */}
-      <div className="filter-group">
-        <h4>Size</h4>
-
-        <select
-          className="control"
-          value={size}
-          onChange={(event) =>
-            setSize(
-              event.target.value,
-            )
+          onClick={
+            clearFilters
           }
         >
-          <option value="All">
-            All
-          </option>
-
-          {sizes.map(
-            (item) => (
-              <option
-                key={item}
-                value={item}
-              >
-                {item}
-              </option>
-            ),
-          )}
-        </select>
-      </div>
-
-      {/* CONDITION */}
-      <div className="filter-group">
-        <h4>Condition</h4>
-
-        <select
-          className="control"
-          value={condition}
-          onChange={(event) =>
-            setCondition(
-              event.target.value,
-            )
-          }
-        >
-          <option value="All">
-            All
-          </option>
-
-          {[
-            'Like New',
-            'Excellent',
-            'Good',
-            'Fair',
-          ].map((item) => (
-            <option
-              key={item}
-              value={item}
-            >
-              {item}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* BRAND */}
-      <div className="filter-group">
-        <h4>Brand</h4>
-
-        <select
-          className="control"
-          value={brand}
-          onChange={(event) =>
-            setBrand(
-              event.target.value,
-            )
-          }
-        >
-          <option value="All">
-            All
-          </option>
-
-          {brands.map(
-            (item) => (
-              <option
-                key={item}
-                value={item}
-              >
-                {item}
-              </option>
-            ),
-          )}
-        </select>
-      </div>
-
-      {/* CLEAR */}
-      <button
-        type="button"
-        className="btn ghost"
-        style={{
-          width: '100%',
-        }}
-        onClick={clearFilters}
-      >
-        Clear filters
-      </button>
-    </>
-  );
+          Clear filters
+        </button>
+      </>
+    );
+  }
 
   if (!ready) {
     return (
@@ -484,53 +637,80 @@ function ShopContent() {
   return (
     <div className="container">
       {/* HERO */}
+
       <div className="page-hero">
         <span className="eyebrow">
           {eyebrow}
         </span>
 
-        <h1>{title}</h1>
+        <h1>
+          {title}
+        </h1>
 
-        <p>{description}</p>
+        <p>
+          {description}
+        </p>
       </div>
 
       <div className="shop-layout">
-        {/* DESKTOP FILTER ONLY */}
+        {/* DESKTOP FILTER */}
+
         <aside className="filter-panel desktop-filter-panel">
-          {filterContent}
+          {renderFilterContent(
+            'desktop',
+          )}
         </aside>
 
         <div>
           {/* TOP BAR */}
+
           <div className="shop-topbar">
             <div className="search-wrap">
-              <Search size={18} />
+              <Search
+                size={18}
+                aria-hidden="true"
+              />
 
               <input
+                id="shop-search"
+                name="shop-search"
+                type="search"
                 className="control"
                 value={q}
-                onChange={(event) =>
+                onChange={(
+                  event,
+                ) =>
                   setQ(
-                    event.target.value,
+                    event.target
+                      .value,
                   )
                 }
                 placeholder="Search products, brands, categories..."
+                aria-label="Search products"
               />
             </div>
 
             {/* MOBILE FILTER BUTTON */}
+
             <button
               type="button"
               className="btn ghost mobile-filter"
+              aria-expanded={
+                showFilters
+              }
+              aria-controls="mobile-shop-filters"
               onClick={() =>
                 setShowFilters(
-                  (value) =>
+                  (
+                    value,
+                  ) =>
                     !value,
                 )
               }
             >
               <SlidersHorizontal
                 size={17}
+                aria-hidden="true"
               />
 
               {showFilters
@@ -539,15 +719,22 @@ function ShopContent() {
             </button>
 
             {/* SORT */}
+
             <select
+              id="shop-sort"
+              name="shop-sort"
+              aria-label="Sort products"
               className="control"
               style={{
                 maxWidth: 200,
               }}
               value={sort}
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setSort(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
             >
@@ -560,45 +747,62 @@ function ShopContent() {
               </option>
 
               <option value="price-low">
-                Price: low to high
+                Price: low to
+                high
               </option>
 
               <option value="price-high">
-                Price: high to low
+                Price: high to
+                low
               </option>
             </select>
           </div>
 
-          {/* MOBILE FILTER ONLY */}
+          {/* MOBILE FILTER */}
+
           {showFilters && (
-            <div className="mobile-filter-panel">
-              {filterContent}
+            <div
+              id="mobile-shop-filters"
+              className="mobile-filter-panel"
+            >
+              {renderFilterContent(
+                'mobile',
+              )}
             </div>
           )}
 
           {/* RESULT COUNT */}
+
           <div className="result-count">
             {filtered.length}{' '}
-            {filtered.length === 1
+
+            {filtered.length ===
+            1
               ? 'product'
               : 'products'}
           </div>
 
           {/* PRODUCTS */}
-          {filtered.length > 0 ? (
+
+          {filtered.length >
+          0 ? (
             <ProductGrid
-              products={filtered}
+              products={
+                filtered
+              }
             />
           ) : (
             <div className="empty-state">
               <h3>
-                No products found.
+                No products
+                found.
               </h3>
 
               <p>
-                Try clearing a filter
-                or searching a broader
-                term.
+                Try clearing a
+                filter or
+                searching a
+                broader term.
               </p>
             </div>
           )}
@@ -615,7 +819,8 @@ export default function ShopPage() {
         <div className="container content-page">
           <div className="empty-state">
             <h3>
-              Loading products…
+              Loading
+              products…
             </h3>
           </div>
         </div>
