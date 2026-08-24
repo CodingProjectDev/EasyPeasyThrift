@@ -527,19 +527,31 @@ export default function CheckoutPage() {
           </span>
 
           <h2
-            style={{
-              marginTop: 12,
-            }}
-          >
-            Order placed successfully!
-          </h2>
+  style={{
+    marginTop: 12,
+  }}
+>
+  Order placed successfully!
+</h2>
 
-          <p>
-            {placed.paymentMethod ===
-            'QR'
-              ? 'Your payment proof has been submitted successfully and is waiting for admin verification.'
-              : 'Your Cash on Delivery order has been placed successfully and is now Pending.'}
-          </p>
+{placed.paymentMethod === 'COD' && (
+  <p
+    style={{
+      color: '#b42318',
+      fontWeight: 800,
+      marginTop: 10,
+      marginBottom: 18,
+    }}
+  >
+    Order placed successfully! Our associate will contact you shortly for verification.
+  </p>
+)}
+
+<p>
+  {placed.paymentMethod === 'QR'
+    ? 'Your payment proof has been submitted successfully. Your payment is now waiting for admin verification.'
+    : 'Your Cash on Delivery order has been placed successfully and is now Pending.'}
+</p>
 
           <p>
             <b>Shipping:</b>{' '}
