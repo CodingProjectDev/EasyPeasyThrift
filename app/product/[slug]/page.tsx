@@ -84,11 +84,11 @@ export default function ProductPage() {
   }
   const descriptionWords = product.description.trim().split(/\s+/);
 
-const hasLongDescription = descriptionWords.length > 80;
+const hasLongDescription = descriptionWords.length > 40;
 
 const displayedDescription =
   hasLongDescription && !showFullDescription
-    ? `${descriptionWords.slice(0, 80).join(' ')}...`
+    ? `${descriptionWords.slice(0, 40).join(' ')}...`
     : product.description;
 
   /*
