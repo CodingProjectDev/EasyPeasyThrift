@@ -236,9 +236,15 @@ export default function ProductPage() {
 
           {/* DESCRIPTION */}
 
-          <p className="product-description">
-            {product.description}
-          </p>
+<div className="product-description-box">
+  <h3 className="product-description-title">
+    Description
+  </h3>
+
+  <p className="product-description">
+    {product.description}
+  </p>
+</div>
 
           {/* MEASUREMENTS */}
 
