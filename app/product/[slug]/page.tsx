@@ -200,9 +200,10 @@ export default function ProductPage() {
   /*
    * CHECKOUT NOW
    */
-  function handleCheckoutNow() {
-    if (
-      product.inventory < 1
+function handleCheckoutNow() {
+  if (
+    !product ||
+    product.inventory < 1
     ) {
       return;
     }
