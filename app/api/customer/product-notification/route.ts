@@ -1,19 +1,11 @@
-import {
-  NextResponse,
-} from 'next/server';
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+import { Resend } from 'resend';
 
-import {
-  Resend,
-} from 'resend';
-
-import {
-  createClient,
-} from '@/lib/supabase/server';
-
-const resend =
-  new Resend(
-    process.env.RESEND_API_KEY,
-  );
+const resend = new Resend(
+  process.env.RESEND_API_KEY,
+);
 
 type NotificationAction =
   | 'cart'
@@ -23,35 +15,61 @@ function escapeHtml(
   value: string,
 ) {
   return value
-    .replaceAll(
-      '&',
-      '&amp;',
-    )
-    .replaceAll(
-      '<',
-      '&lt;',
-    )
-    .replaceAll(
-      '>',
-      '&gt;',
-    )
-    .replaceAll(
-      '"',
-      '&quot;',
-    )
-    .replaceAll(
-      "'",
-      '&#039;',
-    );
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+async function getSupabaseServerClient() {
+  const cookieStore =
+    await cookies();
+
+  return createServerClient(
+    process.env
+      .NEXT_PUBLIC_SUPABASE_URL!,
+    process.env
+      .NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+
+        setAll(
+          cookiesToSet,
+        ) {
+          try {
+            cookiesToSet.forEach(
+              ({
+                name,
+                value,
+                options,
+              }) => {
+                cookieStore.set(
+                  name,
+                  value,
+                  options,
+                );
+              },
+            );
+          } catch {
+            /*
+             * Safe to ignore if cookies
+             * cannot be written here.
+             */
+          }
+        },
+      },
+    },
+  );
 }
 
 export async function POST(
   request: Request,
 ) {
   try {
-    /*
-     * Check environment variables.
-     */
     const fromEmail =
       process.env
         .CONTACT_FROM_EMAIL;
@@ -61,10 +79,6 @@ export async function POST(
         .RESEND_API_KEY ||
       !fromEmail
     ) {
-      console.error(
-        'Product notification email environment variables are missing.',
-      );
-
       return NextResponse.json(
         {
           error:
@@ -77,11 +91,15 @@ export async function POST(
     }
 
     /*
-     * Get logged-in Supabase user.
+     * Create authenticated server
+     * Supabase client.
      */
     const supabase =
-      await createClient();
+      await getSupabaseServerClient();
 
+    /*
+     * Verify logged-in customer.
+     */
     const {
       data: { user },
       error: userError,
@@ -103,13 +121,6 @@ export async function POST(
       );
     }
 
-    /*
-     * Never trust an email address
-     * provided by the browser.
-     *
-     * We use the verified email from
-     * the Supabase login session.
-     */
     const customerEmail =
       user.email;
 
@@ -125,9 +136,6 @@ export async function POST(
       );
     }
 
-    /*
-     * Read request.
-     */
     const body =
       await request.json();
 
@@ -170,11 +178,8 @@ export async function POST(
     }
 
     /*
-     * Fetch real product details
+     * Load real product data
      * from Supabase.
-     *
-     * Never trust the product name
-     * supplied by the browser.
      */
     const {
       data: product,
@@ -209,7 +214,7 @@ export async function POST(
     /*
      * Customer name.
      */
-    const customerName =
+    let customerName =
       String(
         user.user_metadata
           ?.full_name ||
@@ -219,7 +224,42 @@ export async function POST(
       ).trim();
 
     /*
-     * Store information.
+     * If auth metadata has no name,
+     * try customer's latest order.
+     */
+    if (!customerName) {
+      const {
+        data: latestOrder,
+      } =
+        await supabase
+          .from('orders')
+          .select(
+            'full_name',
+          )
+          .eq(
+            'customer_id',
+            user.id,
+          )
+          .order(
+            'created_at',
+            {
+              ascending:
+                false,
+            },
+          )
+          .limit(1)
+          .maybeSingle();
+
+      customerName =
+        String(
+          latestOrder
+            ?.full_name ||
+            '',
+        ).trim();
+    }
+
+    /*
+     * Store name.
      */
     const {
       data:
@@ -232,7 +272,10 @@ export async function POST(
         .select(
           'store_name',
         )
-        .eq('id', 1)
+        .eq(
+          'id',
+          1,
+        )
         .maybeSingle();
 
     const storeName =
@@ -243,7 +286,7 @@ export async function POST(
       );
 
     /*
-     * Destination button.
+     * Website URL.
      */
     const origin =
       process.env
@@ -263,9 +306,6 @@ export async function POST(
         ? `${baseUrl}/cart`
         : `${baseUrl}/wishlist`;
 
-    /*
-     * Email content.
-     */
     const productName =
       String(
         product.name ||
@@ -311,7 +351,7 @@ export async function POST(
         : 'View Wishlist';
 
     /*
-     * Send notification.
+     * Send email.
      */
     const {
       error:
