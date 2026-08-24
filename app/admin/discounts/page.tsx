@@ -46,35 +46,62 @@ export default function Discounts() {
     void loadPromos();
   }, [loadPromos]);
 
-  async function add(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setCreating(true);
-    setError('');
-    setMessage('');
+async function add(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
 
-    try {
-      const response = await fetch('/api/admin/promos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: String(form.get('code') || ''),
-          type: String(form.get('type') || ''),
-          value: Number(form.get('value')),
-          expiresAt: String(form.get('expiresAt') || ''),
-        }),
-      });
+  setCreating(true);
+  setError('');
+  setMessage('');
 
-      const payload = await response.json().catch(() => ({}));
+  try {
+    const response = await fetch('/api/admin/promos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code: String(form.get('code') || ''),
+        type: String(form.get('type') || ''),
+        value: Number(form.get('value')),
+        expiresAt: String(form.get('expiresAt') || ''),
+      }),
+    });
 
-      if (!response.ok || !payload.promo) {
-        throw new Error(payload.error || 'Could not create promo code.');
-      }
+    const payload = await response
+      .json()
+      .catch(() => ({}));
 
-      setPromos((current) => [payload.promo as PromoCode, ...current]);
-      setMessage('Promo code created and saved to Supabase.');
-      event.currentTarget.reset();
+    if (!response.ok || !payload.promo) {
+      throw new Error(
+        payload.error ||
+          'Could not create promo code.',
+      );
+    }
+
+    setPromos((current) => [
+      payload.promo as PromoCode,
+      ...current,
+    ]);
+
+    setMessage(
+      'Promo code created and saved to Supabase.',
+    );
+
+    formElement.reset();
+  } catch (createError) {
+    setError(
+      createError instanceof Error
+        ? createError.message
+        : 'Could not create promo code.',
+    );
+  } finally {
+    setCreating(false);
+  }
+}
+  
     } catch (createError) {
       setError(
         createError instanceof Error ? createError.message : 'Could not create promo code.',
