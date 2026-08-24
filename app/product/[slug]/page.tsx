@@ -1,12 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import {
+  useEffect,
+  useState,
+} from 'react';
+
+import {
+  useParams,
+  useRouter,
+} from 'next/navigation';
+
 import Link from 'next/link';
 
 import {
-  ExternalLink,
   Heart,
+  Play,
   ShoppingBag,
 } from 'lucide-react';
 
@@ -15,11 +23,40 @@ import ProductGrid from '@/components/product-grid';
 import { ProductImage } from '@/components/product-image';
 import { money } from '@/lib/format';
 
+/*
+ * Extract TikTok video ID from a full TikTok URL.
+ *
+ * Example:
+ * https://www.tiktok.com/@username/video/1234567890123456789
+ *
+ * Returns:
+ * 1234567890123456789
+ */
+function getTikTokVideoId(
+  url?: string | null,
+) {
+  if (!url) {
+    return null;
+  }
+
+  const match =
+    url.match(/\/video\/(\d+)/);
+
+  return match?.[1] || null;
+}
+
 export default function ProductPage() {
   const router = useRouter();
-  const [showFullDescription, setShowFullDescription] = useState(false);
+
+  const [
+    showFullDescription,
+    setShowFullDescription,
+  ] = useState(false);
+
   const { slug } =
-    useParams<{ slug: string }>();
+    useParams<{
+      slug: string;
+    }>();
 
   const {
     products,
@@ -32,13 +69,17 @@ export default function ProductPage() {
     ready,
   } = useStore();
 
-  const product = products.find(
-    (item) => item.slug === slug,
-  );
+  const product =
+    products.find(
+      (item) =>
+        item.slug === slug,
+    );
 
   useEffect(() => {
     if (product) {
-      recordRecent(product.id);
+      recordRecent(
+        product.id,
+      );
     }
   }, [product?.id]);
 
@@ -49,11 +90,13 @@ export default function ProductPage() {
     return (
       <div className="container content-page">
         <div className="empty-state">
-          <h2>Loading piece…</h2>
+          <h2>
+            Loading piece…
+          </h2>
 
           <p className="muted">
-            Checking the latest store
-            inventory.
+            Checking the latest
+            store inventory.
           </p>
         </div>
       </div>
@@ -66,11 +109,13 @@ export default function ProductPage() {
   if (!product) {
     return (
       <div className="container content-page">
-        <h1>Piece not found.</h1>
+        <h1>
+          Piece not found.
+        </h1>
 
         <p>
-          It may have been removed
-          from the rack.
+          It may have been
+          removed from the rack.
         </p>
 
         <Link
@@ -82,14 +127,39 @@ export default function ProductPage() {
       </div>
     );
   }
-  const descriptionWords = product.description.trim().split(/\s+/);
 
-const hasLongDescription = descriptionWords.length > 25;
+  /*
+   * DESCRIPTION
+   */
+  const descriptionWords =
+    product.description
+      .trim()
+      .split(/\s+/);
 
-const displayedDescription =
-  hasLongDescription && !showFullDescription
-    ? `${descriptionWords.slice(0, 25).join(' ')}...`
-    : product.description;
+  const hasLongDescription =
+    descriptionWords.length >
+    25;
+
+  const displayedDescription =
+    hasLongDescription &&
+    !showFullDescription
+      ? `${descriptionWords
+          .slice(0, 25)
+          .join(' ')}...`
+      : product.description;
+
+  /*
+   * TIKTOK VIDEO
+   */
+  const tiktokVideoId =
+    getTikTokVideoId(
+      product.tiktokUrl,
+    );
+
+  const tiktokEmbedUrl =
+    tiktokVideoId
+      ? `https://www.tiktok.com/player/v1/${tiktokVideoId}?autoplay=0&loop=0`
+      : null;
 
   /*
    * RELATED PRODUCTS
@@ -97,7 +167,8 @@ const displayedDescription =
   const related = products
     .filter(
       (item) =>
-        item.id !== product.id &&
+        item.id !==
+          product.id &&
         item.category ===
           product.category,
     )
@@ -108,11 +179,13 @@ const displayedDescription =
    */
   const recently = recent
     .filter(
-      (id) => id !== product.id,
+      (id) =>
+        id !== product.id,
     )
     .map((id) =>
       products.find(
-        (item) => item.id === id,
+        (item) =>
+          item.id === id,
       ),
     )
     .filter(Boolean)
@@ -129,13 +202,13 @@ const displayedDescription =
    */
   function handleCheckoutNow() {
     if (
-      !product ||
       product.inventory < 1
     ) {
       return;
     }
 
-    const productId = product.id;
+    const productId =
+      product.id;
 
     const alreadyInCart =
       cart.some(
@@ -145,10 +218,14 @@ const displayedDescription =
       );
 
     if (!alreadyInCart) {
-      addToCart(productId);
+      addToCart(
+        productId,
+      );
     }
 
-    router.push('/checkout');
+    router.push(
+      '/checkout',
+    );
   }
 
   return (
@@ -158,7 +235,10 @@ const displayedDescription =
 
         <div className="product-gallery">
           {product.images.map(
-            (image, index) => (
+            (
+              image,
+              index,
+            ) => (
               <ProductImage
                 key={`${image}-${index}`}
                 src={image}
@@ -174,7 +254,8 @@ const displayedDescription =
 
         <div className="product-info">
           <span className="eyebrow">
-            {product.category} ·{' '}
+            {product.category}
+            {' · '}
             {product.brand}
           </span>
 
@@ -187,8 +268,11 @@ const displayedDescription =
           <div
             className="badges"
             style={{
-              position: 'static',
-              maxWidth: 'none',
+              position:
+                'static',
+
+              maxWidth:
+                'none',
             }}
           >
             {product.newArrival && (
@@ -214,7 +298,9 @@ const displayedDescription =
 
           <div className="price-row">
             <strong>
-              {money(product.price)}
+              {money(
+                product.price,
+              )}
             </strong>
 
             {product.compareAt && (
@@ -230,11 +316,14 @@ const displayedDescription =
 
           <div className="info-chips">
             <span className="info-chip">
-              Size {product.size}
+              Size{' '}
+              {product.size}
             </span>
 
             <span className="info-chip">
-              {product.condition}
+              {
+                product.condition
+              }
             </span>
 
             <span className="info-chip">
@@ -244,88 +333,120 @@ const displayedDescription =
 
           {/* DESCRIPTION */}
 
-<div className="product-description-box">
-  <h3 className="product-description-title">
-    Description:
-  </h3>
+          <div className="product-description-box">
+            <h3 className="product-description-title">
+              Description:
+            </h3>
 
-  <p className="product-description">
-    {displayedDescription}
-  </p>
+            <p className="product-description">
+              {
+                displayedDescription
+              }
+            </p>
 
-  {hasLongDescription && (
-    <button
-      type="button"
-      className="description-toggle"
-      onClick={() =>
-        setShowFullDescription((current) => !current)
-      }
-    >
-      {showFullDescription ? '⌃ See less' : 'See more'}
-    </button>
-  )}
-</div>
+            {hasLongDescription && (
+              <button
+                type="button"
+                className="description-toggle"
+                onClick={() =>
+                  setShowFullDescription(
+                    (
+                      current,
+                    ) =>
+                      !current,
+                  )
+                }
+              >
+                {showFullDescription
+                  ? '⌃ See less'
+                  : 'See more'}
+              </button>
+            )}
+          </div>
 
           {/* MEASUREMENTS */}
 
-          {Object.entries(product.measurements).some(
-  ([, value]) =>
-    value &&
-    value.trim() !== '' &&
-    value.toLowerCase() !== 'not listed',
-) && (
-  <div className="measurements">
-    <strong>
-      Measurements
-    </strong>
+          {Object.entries(
+            product.measurements,
+          ).some(
+            ([, value]) =>
+              value &&
+              value.trim() !==
+                '' &&
+              value.toLowerCase() !==
+                'not listed',
+          ) && (
+            <div className="measurements">
+              <strong>
+                Measurements
+              </strong>
 
-    <p
-      className="muted"
-      style={{
-        fontSize: '.78rem',
-        marginTop: 5,
-      }}
-    >
-      Measured flat. Compare with a piece
-      you already own.
-    </p>
+              <p
+                className="muted"
+                style={{
+                  fontSize:
+                    '.78rem',
+                  marginTop: 5,
+                }}
+              >
+                Measured flat.
+                Compare with a
+                piece you already
+                own.
+              </p>
 
-    {Object.entries(product.measurements)
-      .filter(
-        ([, value]) =>
-          value &&
-          value.trim() !== '' &&
-          value.toLowerCase() !== 'not listed',
-      )
-      .map(([key, value]) => (
-        <div
-          className="measure-row"
-          key={key}
-        >
-          <span>{key}</span>
+              {Object.entries(
+                product.measurements,
+              )
+                .filter(
+                  ([, value]) =>
+                    value &&
+                    value.trim() !==
+                      '' &&
+                    value.toLowerCase() !==
+                      'not listed',
+                )
+                .map(
+                  ([
+                    key,
+                    value,
+                  ]) => (
+                    <div
+                      className="measure-row"
+                      key={key}
+                    >
+                      <span>
+                        {key}
+                      </span>
 
-          <b>{value}</b>
-        </div>
-      ))}
-  </div>
-)}
+                      <b>
+                        {value}
+                      </b>
+                    </div>
+                  ),
+                )}
+            </div>
+          )}
 
-          {/* INVENTORY MESSAGE */}
+          {/* INVENTORY */}
 
           {sold ? (
             <div className="notice brown">
-              <b>Sold Out.</b>{' '}
-              This one-of-one piece
-              already found its next
-              home.
+              <b>
+                Sold Out.
+              </b>{' '}
+              This one-of-one
+              piece already found
+              its next home.
             </div>
           ) : (
             <div className="notice sage">
               Only{' '}
               {product.inventory}{' '}
-              available. Adding it to
-              cart does not reserve it
-              until checkout is
+              available. Adding
+              it to cart does not
+              reserve it until
+              checkout is
               completed.
             </div>
           )}
@@ -386,37 +507,53 @@ const displayedDescription =
             </button>
           </div>
 
-          {/* TIKTOK */}
+          {/* TIKTOK VIDEO */}
 
-          {product.tiktokUrl && (
-            <a
-              href={
-                product.tiktokUrl
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn ghost"
-              style={{
-                marginTop: 12,
-                width: '100%',
-                justifyContent:
-                  'center',
-              }}
-            >
-              <ExternalLink
-                size={17}
-              />
+          {tiktokEmbedUrl && (
+            <div className="product-video-section">
+              <div className="product-video-heading">
+                <Play
+                  size={18}
+                  fill="currentColor"
+                />
 
-              Watch product video on
-              TikTok
-            </a>
+                <strong>
+                  Watch product
+                  video
+                </strong>
+              </div>
+
+              <div className="tiktok-video-wrap">
+                <iframe
+                  src={
+                    tiktokEmbedUrl
+                  }
+                  title={`${product.name} product video`}
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  loading="lazy"
+                />
+              </div>
+            </div>
           )}
+
+          {/* INVALID / SHORT TIKTOK URL */}
+
+          {product.tiktokUrl &&
+            !tiktokVideoId && (
+              <div className="notice brown">
+                Product video is
+                currently
+                unavailable.
+              </div>
+            )}
         </div>
       </section>
 
       {/* RELATED PRODUCTS */}
 
-      {related.length > 0 && (
+      {related.length >
+        0 && (
         <section className="section">
           <div className="section-head">
             <div>
@@ -438,7 +575,8 @@ const displayedDescription =
 
       {/* RECENTLY VIEWED */}
 
-      {recently.length > 0 && (
+      {recently.length >
+        0 && (
         <section className="section">
           <div className="section-head">
             <div>
