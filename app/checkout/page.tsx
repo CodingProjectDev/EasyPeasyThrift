@@ -751,9 +751,7 @@ export default function CheckoutPage() {
                     </b>
 
                     <p className="muted">
-                      Place the order
-                      now and pay when
-                      it arrives.
+                      A small advance payment helps us safely confirm your order. Thank you for your understanding!
                     </p>
                   </div>
                 </label>
