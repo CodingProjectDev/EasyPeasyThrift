@@ -10,6 +10,7 @@ import React, {
 
 import { productFromRow } from '@/lib/product-db';
 import { createClient } from '@/lib/supabase/client';
+
 import {
   CartItem,
   Order,
@@ -42,31 +43,53 @@ export type StoreSettings = {
 
 const defaultSettings: StoreSettings = {
   storeName: 'EasyPeasy-Thrift',
-  tagline: 'Secondhand. Standout. So Easy.',
+
+  tagline:
+    'Secondhand. Standout. So Easy.',
+
   announcementText:
     'Shipping: Depends on product and location • Secondhand. Standout. So Easy.',
+
   storeEmail: '',
+
   storePhone: '',
+
   shippingInfo:
     'Depends on product and location',
+
   returnPolicy:
     'Please make sure you check the item carefully before purchasing. By completing your purchase, you agree to this return policy.\n\nThank you for your understanding and support! ❤️',
+
   codEnabled: true,
+
   qrEnabled: true,
-  qrImage: '/store-qr.png',
+
+  qrImage:
+    '/store-qr.png',
+
   instagramUrl: '',
+
   tiktokUrl: '',
+
   pinterestUrl: '',
 };
 
 type StoreContextValue = {
   ready: boolean;
+
   products: Product[];
+
   cart: CartItem[];
+
   wishlist: string[];
+
   recent: string[];
+
   promos: PromoCode[];
-  settings: StoreSettings;
+
+  settings:
+    StoreSettings;
+
   cartCount: number;
 
   cartProducts: Array<{
@@ -74,48 +97,50 @@ type StoreContextValue = {
     quantity: number;
   }>;
 
-  addToCart: (id: string) => void;
-  removeFromCart: (id: string) => void;
-  updateQty: (
-    id: string,
-    qty: number,
-  ) => void;
+  addToCart:
+    (id: string) => void;
 
-  clearCart: () => void;
+  removeFromCart:
+    (id: string) => void;
 
-  toggleWishlist: (
-    id: string,
-  ) => void;
+  updateQty:
+    (
+      id: string,
+      qty: number,
+    ) => void;
 
-  recordRecent: (
-    id: string,
-  ) => void;
+  clearCart:
+    () => void;
 
-  placeLocalOrder: (
-    order: Order,
-  ) => void;
+  toggleWishlist:
+    (id: string) => void;
 
-  addProduct: (
-    product: Product,
-  ) => void;
+  recordRecent:
+    (id: string) => void;
 
-  updateProduct: (
-    product: Product,
-  ) => void;
+  placeLocalOrder:
+    (order: Order) => void;
 
-  deleteProduct: (
-    id: string,
-  ) => void;
+  addProduct:
+    (product: Product) => void;
 
-  saveSettings: (
-    settings: StoreSettings,
-  ) => Promise<void>;
+  updateProduct:
+    (product: Product) => void;
+
+  deleteProduct:
+    (id: string) => void;
+
+  saveSettings:
+    (
+      settings:
+        StoreSettings,
+    ) => Promise<void>;
 };
 
 const StoreContext =
-  createContext<StoreContextValue | null>(
-    null,
-  );
+  createContext<
+    StoreContextValue | null
+  >(null);
 
 function load<T>(
   key: string,
@@ -144,10 +169,12 @@ function load<T>(
 
 function customerKey(
   base: string,
-  userId: string | null,
+  userId:
+    string | null,
 ) {
   return `${base}_${
-    userId || 'guest'
+    userId ||
+    'guest'
   }`;
 }
 
@@ -155,20 +182,24 @@ function settingsFromRow(
   row: any,
 ): StoreSettings {
   return {
-    storeName: String(
-      row?.store_name ||
-        defaultSettings.storeName,
-    ),
+    storeName:
+      String(
+        row?.store_name ||
+          defaultSettings.storeName,
+      ),
 
-    tagline: String(
-      row?.tagline ||
-        defaultSettings.tagline,
-    ),
+    tagline:
+      String(
+        row?.tagline ||
+          defaultSettings.tagline,
+      ),
 
     announcementText:
-      typeof row?.announcement_text ===
+      typeof row
+        ?.announcement_text ===
       'string'
-        ? row.announcement_text
+        ? row
+            .announcement_text
         : `Shipping: ${String(
             row?.shipping_info ||
               defaultSettings.shippingInfo,
@@ -177,32 +208,40 @@ function settingsFromRow(
               defaultSettings.tagline,
           )}`,
 
-    storeEmail: String(
-      row?.store_email || '',
-    ),
+    storeEmail:
+      String(
+        row?.store_email ||
+          '',
+      ),
 
-    storePhone: String(
-      row?.store_phone || '',
-    ),
+    storePhone:
+      String(
+        row?.store_phone ||
+          '',
+      ),
 
-    shippingInfo: String(
-      row?.shipping_info ||
-        defaultSettings.shippingInfo,
-    ),
+    shippingInfo:
+      String(
+        row?.shipping_info ||
+          defaultSettings.shippingInfo,
+      ),
 
-    returnPolicy: String(
-      row?.return_policy ||
-        defaultSettings.returnPolicy,
-    ),
+    returnPolicy:
+      String(
+        row?.return_policy ||
+          defaultSettings.returnPolicy,
+      ),
 
     codEnabled:
-      typeof row?.cod_enabled ===
+      typeof row
+        ?.cod_enabled ===
       'boolean'
         ? row.cod_enabled
         : defaultSettings.codEnabled,
 
     qrEnabled:
-      typeof row?.qr_enabled ===
+      typeof row
+        ?.qr_enabled ===
       'boolean'
         ? row.qr_enabled
         : defaultSettings.qrEnabled,
@@ -248,64 +287,92 @@ function promoFromRow(
   row: any,
 ): PromoCode {
   return {
-    id: String(row.id),
-    code: String(row.code),
-    type: String(
-      row.discount_type,
-    ) as PromoCode['type'],
-    value: Number(row.value),
-    expiresAt: String(
-      row.expires_at,
-    ),
-    active: Boolean(
-      row.active,
-    ),
+    id:
+      String(row.id),
+
+    code:
+      String(row.code),
+
+    type:
+      String(
+        row.discount_type,
+      ) as PromoCode['type'],
+
+    value:
+      Number(
+        row.value,
+      ),
+
+    expiresAt:
+      String(
+        row.expires_at,
+      ),
+
+    active:
+      Boolean(
+        row.active,
+      ),
   };
 }
 
-/*
- * Sends a request to our own server.
- *
- * The customer's email is NOT sent
- * from the browser.
- *
- * The server verifies the Supabase
- * user and gets their email securely.
- */
-async function sendProductNotification(
+async function productNotification(
   productId: string,
-  action: 'cart' | 'wishlist',
+
+  action:
+    | 'cart'
+    | 'wishlist',
+
+  operation:
+    | 'schedule'
+    | 'cancel',
 ) {
   try {
-    const response = await fetch(
-      '/api/customer/product-notification',
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type': 'application/json',
-        },
-
-        body: JSON.stringify({
-          productId,
-          action,
-        }),
-
-        keepalive: true,
-      },
-    );
-
-    const payload = await response
-      .json()
-      .catch(() => ({}));
-
-    if (!response.ok) {
-      console.error(
-        'PRODUCT EMAIL FAILED:',
+    const response =
+      await fetch(
+        '/api/customer/product-notification',
         {
-          status: response.status,
+          method:
+            'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+
+          body:
+            JSON.stringify({
+              productId,
+              action,
+              operation,
+            }),
+
+          keepalive:
+            true,
+        },
+      );
+
+    const payload =
+      await response
+        .json()
+        .catch(
+          () => ({}),
+        );
+
+    if (
+      !response.ok
+    ) {
+      console.error(
+        'PRODUCT NOTIFICATION FAILED:',
+        {
+          status:
+            response.status,
+
           productId,
+
           action,
+
+          operation,
+
           error:
             payload.error ||
             'Unknown error',
@@ -316,15 +383,16 @@ async function sendProductNotification(
     }
 
     console.log(
-      'PRODUCT EMAIL SENT:',
+      'PRODUCT NOTIFICATION:',
       {
         productId,
         action,
+        operation,
       },
     );
   } catch (error) {
     console.error(
-      'PRODUCT EMAIL REQUEST FAILED:',
+      'PRODUCT NOTIFICATION REQUEST FAILED:',
       error,
     );
   }
@@ -333,12 +401,14 @@ async function sendProductNotification(
 export function StoreProvider({
   children,
 }: {
-  children: React.ReactNode;
+  children:
+    React.ReactNode;
 }) {
   const [
     ready,
     setReady,
-  ] = useState(false);
+  ] =
+    useState(false);
 
   const [
     customerUserId,
@@ -351,34 +421,50 @@ export function StoreProvider({
   const [
     products,
     setProducts,
-  ] = useState<Product[]>([]);
+  ] =
+    useState<
+      Product[]
+    >([]);
 
   const [
     cart,
     setCart,
-  ] = useState<CartItem[]>([]);
+  ] =
+    useState<
+      CartItem[]
+    >([]);
 
   const [
     wishlist,
     setWishlist,
-  ] = useState<string[]>([]);
+  ] =
+    useState<
+      string[]
+    >([]);
 
   const [
     recent,
     setRecent,
-  ] = useState<string[]>([]);
+  ] =
+    useState<
+      string[]
+    >([]);
 
   const [
     promos,
     setPromos,
   ] =
-    useState<PromoCode[]>([]);
+    useState<
+      PromoCode[]
+    >([]);
 
   const [
     settings,
     setSettings,
   ] =
-    useState<StoreSettings>(
+    useState<
+      StoreSettings
+    >(
       defaultSettings,
     );
 
@@ -386,7 +472,8 @@ export function StoreProvider({
     const supabase =
       createClient();
 
-    let mounted = true;
+    let mounted =
+      true;
 
     setRecent(
       load(
@@ -399,17 +486,23 @@ export function StoreProvider({
       const {
         data,
         error,
-      } = await supabase
-        .from('products')
-        .select('*')
-        .eq('active', true)
-        .order(
-          'created_at',
-          {
-            ascending:
-              false,
-          },
-        );
+      } =
+        await supabase
+          .from(
+            'products',
+          )
+          .select('*')
+          .eq(
+            'active',
+            true,
+          )
+          .order(
+            'created_at',
+            {
+              ascending:
+                false,
+            },
+          );
 
       if (!mounted) {
         return;
@@ -425,7 +518,10 @@ export function StoreProvider({
       }
 
       setProducts(
-        (data || []).map(
+        (
+          data ||
+          []
+        ).map(
           productFromRow,
         ),
       );
@@ -435,13 +531,17 @@ export function StoreProvider({
       const {
         data,
         error,
-      } = await supabase
-        .from(
-          'store_settings',
-        )
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
+      } =
+        await supabase
+          .from(
+            'store_settings',
+          )
+          .select('*')
+          .eq(
+            'id',
+            1,
+          )
+          .maybeSingle();
 
       if (!mounted) {
         return;
@@ -469,23 +569,30 @@ export function StoreProvider({
       const {
         data,
         error,
-      } = await supabase
-        .from('promo_codes')
-        .select(
-          'id,code,discount_type,value,expires_at,active',
-        )
-        .eq('active', true)
-        .gte(
-          'expires_at',
-          new Date().toISOString(),
-        )
-        .order(
-          'created_at',
-          {
-            ascending:
-              false,
-          },
-        );
+      } =
+        await supabase
+          .from(
+            'promo_codes',
+          )
+          .select(
+            'id,code,discount_type,value,expires_at,active',
+          )
+          .eq(
+            'active',
+            true,
+          )
+          .gte(
+            'expires_at',
+            new Date()
+              .toISOString(),
+          )
+          .order(
+            'created_at',
+            {
+              ascending:
+                false,
+            },
+          );
 
       if (!mounted) {
         return;
@@ -502,7 +609,10 @@ export function StoreProvider({
       }
 
       setPromos(
-        (data || []).map(
+        (
+          data ||
+          []
+        ).map(
           promoFromRow,
         ),
       );
@@ -516,16 +626,21 @@ export function StoreProvider({
       ]);
 
       const {
-        data: { user },
+        data: {
+          user,
+        },
       } =
-        await supabase.auth.getUser();
+        await supabase
+          .auth
+          .getUser();
 
       if (!mounted) {
         return;
       }
 
       const id =
-        user?.id || null;
+        user?.id ||
+        null;
 
       setCustomerUserId(
         id,
@@ -562,40 +677,43 @@ export function StoreProvider({
           authSubscription,
       },
     } =
-      supabase.auth.onAuthStateChange(
-        (
-          _event,
-          session,
-        ) => {
-          const id =
-            session?.user
-              ?.id || null;
+      supabase.auth
+        .onAuthStateChange(
+          (
+            _event,
+            session,
+          ) => {
+            const id =
+              session
+                ?.user
+                ?.id ||
+              null;
 
-          setCustomerUserId(
-            id,
-          );
+            setCustomerUserId(
+              id,
+            );
 
-          setCart(
-            load(
-              customerKey(
-                KEYS.cart,
-                id,
+            setCart(
+              load(
+                customerKey(
+                  KEYS.cart,
+                  id,
+                ),
+                [],
               ),
-              [],
-            ),
-          );
+            );
 
-          setWishlist(
-            load(
-              customerKey(
-                KEYS.wishlist,
-                id,
+            setWishlist(
+              load(
+                customerKey(
+                  KEYS.wishlist,
+                  id,
+                ),
+                [],
               ),
-              [],
-            ),
-          );
-        },
-      );
+            );
+          },
+        );
 
     const productsChannel =
       supabase
@@ -606,7 +724,8 @@ export function StoreProvider({
           'postgres_changes',
           {
             event: '*',
-            schema: 'public',
+            schema:
+              'public',
             table:
               'products',
           },
@@ -624,7 +743,8 @@ export function StoreProvider({
           'postgres_changes',
           {
             event: '*',
-            schema: 'public',
+            schema:
+              'public',
             table:
               'store_settings',
           },
@@ -642,7 +762,8 @@ export function StoreProvider({
           'postgres_changes',
           {
             event: '*',
-            schema: 'public',
+            schema:
+              'public',
             table:
               'promo_codes',
           },
@@ -657,32 +778,39 @@ export function StoreProvider({
       void refreshPromos();
     }
 
-    window.addEventListener(
-      'focus',
-      handleFocus,
-    );
-
-    return () => {
-      mounted = false;
-
-      authSubscription.unsubscribe();
-
-      window.removeEventListener(
+    window
+      .addEventListener(
         'focus',
         handleFocus,
       );
 
-      void supabase.removeChannel(
-        productsChannel,
-      );
+    return () => {
+      mounted =
+        false;
 
-      void supabase.removeChannel(
-        settingsChannel,
-      );
+      authSubscription
+        .unsubscribe();
 
-      void supabase.removeChannel(
-        promosChannel,
-      );
+      window
+        .removeEventListener(
+          'focus',
+          handleFocus,
+        );
+
+      void supabase
+        .removeChannel(
+          productsChannel,
+        );
+
+      void supabase
+        .removeChannel(
+          settingsChannel,
+        );
+
+      void supabase
+        .removeChannel(
+          promosChannel,
+        );
     };
   }, []);
 
@@ -697,7 +825,10 @@ export function StoreProvider({
         recent,
       ),
     );
-  }, [recent, ready]);
+  }, [
+    recent,
+    ready,
+  ]);
 
   useEffect(() => {
     if (!ready) {
@@ -739,11 +870,6 @@ export function StoreProvider({
     customerUserId,
   ]);
 
-  /*
-   * Keep cart and wishlist valid
-   * when products are deleted or
-   * inventory changes elsewhere.
-   */
   useEffect(() => {
     if (!ready) {
       return;
@@ -752,7 +878,9 @@ export function StoreProvider({
     const productMap =
       new Map(
         products.map(
-          (product) => [
+          (
+            product,
+          ) => [
             product.id,
             product,
           ],
@@ -762,30 +890,32 @@ export function StoreProvider({
     setCart(
       (current) =>
         current
-          .map((item) => {
-            const product =
-              productMap.get(
-                item.productId,
-              );
+          .map(
+            (item) => {
+              const product =
+                productMap.get(
+                  item.productId,
+                );
 
-            if (
-              !product ||
-              product.inventory <
-                1
-            ) {
-              return null;
-            }
+              if (
+                !product ||
+                product.inventory <
+                  1
+              ) {
+                return null;
+              }
 
-            return {
-              ...item,
+              return {
+                ...item,
 
-              quantity:
-                Math.min(
-                  item.quantity,
-                  product.inventory,
-                ),
-            };
-          })
+                quantity:
+                  Math.min(
+                    item.quantity,
+                    product.inventory,
+                  ),
+              };
+            },
+          )
           .filter(
             Boolean,
           ) as CartItem[],
@@ -794,334 +924,415 @@ export function StoreProvider({
     setWishlist(
       (current) =>
         current.filter(
-          (productId) =>
+          (
+            productId,
+          ) =>
             productMap.has(
               productId,
             ),
         ),
     );
-  }, [products, ready]);
+  }, [
+    products,
+    ready,
+  ]);
 
   /*
    * ADD TO CART
    */
-  const addToCart = (
-    id: string,
-  ) => {
-    const product =
-      products.find(
-        (item) =>
-          item.id === id,
-      );
+  const addToCart =
+    (
+      id: string,
+    ) => {
+      const product =
+        products.find(
+          (item) =>
+            item.id ===
+            id,
+        );
 
-    if (
-      !product ||
-      product.inventory < 1
-    ) {
-      return;
-    }
+      if (
+        !product ||
+        product.inventory <
+          1
+      ) {
+        return;
+      }
 
-    /*
-     * Important:
-     * We only email when this
-     * product was NOT already
-     * in the cart.
-     */
-    const alreadyInCart =
-      cart.some(
-        (item) =>
-          item.productId ===
-          id,
-      );
-
-    setCart(
-      (current) =>
-        current.some(
+      const alreadyInCart =
+        cart.some(
           (item) =>
             item.productId ===
             id,
-        )
-          ? current.map(
-              (item) =>
-                item.productId ===
-                id
-                  ? {
-                      ...item,
+        );
 
-                      quantity:
-                        Math.min(
-                          item.quantity +
-                            1,
-                          product.inventory,
-                        ),
-                    }
-                  : item,
-            )
-          : [
-              ...current,
-              {
-                productId:
-                  id,
-                quantity: 1,
-              },
-            ],
-    );
+      setCart(
+        (current) =>
+          current.some(
+            (item) =>
+              item.productId ===
+              id,
+          )
+            ? current.map(
+                (
+                  item,
+                ) =>
+                  item.productId ===
+                  id
+                    ? {
+                        ...item,
 
-    /*
-     * Only logged-in customers
-     * receive notification emails.
-     */
-    if (
-      !alreadyInCart &&
-      customerUserId
-    ) {
-      void sendProductNotification(
-        id,
-        'cart',
+                        quantity:
+                          Math.min(
+                            item.quantity +
+                              1,
+                            product.inventory,
+                          ),
+                      }
+                    : item,
+              )
+            : [
+                ...current,
+
+                {
+                  productId:
+                    id,
+
+                  quantity:
+                    1,
+                },
+              ],
       );
-    }
-  };
+
+      if (
+        !alreadyInCart &&
+        customerUserId
+      ) {
+        void productNotification(
+          id,
+          'cart',
+          'schedule',
+        );
+      }
+    };
 
   /*
    * REMOVE FROM CART
    */
-  const removeFromCart = (
-    id: string,
-  ) => {
-    setCart(
-      (current) =>
-        current.filter(
-          (item) =>
-            item.productId !==
-            id,
-        ),
-    );
-  };
+  const removeFromCart =
+    (
+      id: string,
+    ) => {
+      setCart(
+        (current) =>
+          current.filter(
+            (item) =>
+              item.productId !==
+              id,
+          ),
+      );
+
+      if (
+        customerUserId
+      ) {
+        void productNotification(
+          id,
+          'cart',
+          'cancel',
+        );
+      }
+    };
 
   /*
-   * UPDATE QUANTITY
-   *
-   * No email is sent here.
+   * QUANTITY
    */
-  const updateQty = (
-    id: string,
-    qty: number,
-  ) => {
-    const product =
-      products.find(
-        (item) =>
-          item.id === id,
-      );
-
-    if (!product) {
-      return;
-    }
-
-    if (qty <= 0) {
-      removeFromCart(
-        id,
-      );
-
-      return;
-    }
-
-    setCart(
-      (current) =>
-        current.map(
+  const updateQty =
+    (
+      id: string,
+      qty: number,
+    ) => {
+      const product =
+        products.find(
           (item) =>
-            item.productId ===
-            id
-              ? {
-                  ...item,
+            item.id ===
+            id,
+        );
 
-                  quantity:
-                    Math.min(
-                      qty,
-                      product.inventory,
-                    ),
-                }
-              : item,
-        ),
-    );
-  };
+      if (!product) {
+        return;
+      }
+
+      if (
+        qty <= 0
+      ) {
+        removeFromCart(
+          id,
+        );
+
+        return;
+      }
+
+      setCart(
+        (current) =>
+          current.map(
+            (item) =>
+              item.productId ===
+              id
+                ? {
+                    ...item,
+
+                    quantity:
+                      Math.min(
+                        qty,
+                        product.inventory,
+                      ),
+                  }
+                : item,
+          ),
+      );
+    };
 
   /*
    * CLEAR CART
    */
-  const clearCart = () =>
-    setCart([]);
+  const clearCart =
+    () => {
+      const productIds =
+        cart.map(
+          (item) =>
+            item.productId,
+        );
+
+      setCart([]);
+
+      if (
+        customerUserId
+      ) {
+        productIds.forEach(
+          (id) => {
+            void productNotification(
+              id,
+              'cart',
+              'cancel',
+            );
+          },
+        );
+      }
+    };
 
   /*
    * WISHLIST
    */
-  const toggleWishlist = (
-    id: string,
-  ) => {
-    const alreadySaved =
-      wishlist.includes(id);
-
-    setWishlist(
-      (current) =>
-        current.includes(
+  const toggleWishlist =
+    (
+      id: string,
+    ) => {
+      const alreadySaved =
+        wishlist.includes(
           id,
-        )
-          ? current.filter(
+        );
+
+      setWishlist(
+        (current) =>
+          current.includes(
+            id,
+          )
+            ? current.filter(
+                (
+                  productId,
+                ) =>
+                  productId !==
+                  id,
+              )
+            : [
+                ...current,
+                id,
+              ],
+      );
+
+      if (
+        customerUserId
+      ) {
+        void productNotification(
+          id,
+          'wishlist',
+          alreadySaved
+            ? 'cancel'
+            : 'schedule',
+        );
+      }
+    };
+
+  const recordRecent =
+    (
+      id: string,
+    ) => {
+      setRecent(
+        (current) =>
+          [
+            id,
+
+            ...current.filter(
               (
                 productId,
               ) =>
                 productId !==
                 id,
-            )
-          : [
-              ...current,
-              id,
-            ],
-    );
-
-    /*
-     * Send email only when
-     * adding to wishlist.
-     *
-     * Removing does NOT send.
-     */
-    if (
-      !alreadySaved &&
-      customerUserId
-    ) {
-      void sendProductNotification(
-        id,
-        'wishlist',
+            ),
+          ].slice(
+            0,
+            6,
+          ),
       );
-    }
-  };
+    };
 
   /*
-   * RECENTLY VIEWED
+   * ORDER COMPLETED
+   *
+   * Cancel cart reminder because
+   * customer already purchased.
    */
-  const recordRecent = (
-    id: string,
-  ) => {
-    setRecent(
-      (current) =>
-        [
-          id,
+  const placeLocalOrder =
+    (
+      _order: Order,
+    ) => {
+      const productIds =
+        cart.map(
+          (item) =>
+            item.productId,
+        );
+
+      if (
+        customerUserId
+      ) {
+        productIds.forEach(
+          (id) => {
+            void productNotification(
+              id,
+              'cart',
+              'cancel',
+            );
+          },
+        );
+      }
+
+      setCart([]);
+
+      const supabase =
+        createClient();
+
+      void supabase
+        .from(
+          'products',
+        )
+        .select('*')
+        .eq(
+          'active',
+          true,
+        )
+        .order(
+          'created_at',
+          {
+            ascending:
+              false,
+          },
+        )
+        .then(
+          ({
+            data,
+            error,
+          }) => {
+            if (
+              !error
+            ) {
+              setProducts(
+                (
+                  data ||
+                  []
+                ).map(
+                  productFromRow,
+                ),
+              );
+            }
+          },
+        );
+    };
+
+  const addProduct =
+    (
+      product:
+        Product,
+    ) => {
+      setProducts(
+        (current) => [
+          product,
 
           ...current.filter(
+            (item) =>
+              item.id !==
+              product.id,
+          ),
+        ],
+      );
+    };
+
+  const updateProduct =
+    (
+      product:
+        Product,
+    ) => {
+      setProducts(
+        (current) =>
+          current.map(
+            (item) =>
+              item.id ===
+              product.id
+                ? product
+                : item,
+          ),
+      );
+    };
+
+  const deleteProduct =
+    (
+      id: string,
+    ) => {
+      setProducts(
+        (current) =>
+          current.filter(
+            (
+              product,
+            ) =>
+              product.id !==
+              id,
+          ),
+      );
+
+      setCart(
+        (current) =>
+          current.filter(
+            (item) =>
+              item.productId !==
+              id,
+          ),
+      );
+
+      setWishlist(
+        (current) =>
+          current.filter(
             (
               productId,
             ) =>
               productId !==
               id,
           ),
-        ].slice(0, 6),
-    );
-  };
-
-  /*
-   * ORDER COMPLETE
-   */
-  const placeLocalOrder = (
-    _order: Order,
-  ) => {
-    setCart([]);
-
-    const supabase =
-      createClient();
-
-    void supabase
-      .from('products')
-      .select('*')
-      .eq('active', true)
-      .order(
-        'created_at',
-        {
-          ascending:
-            false,
-        },
-      )
-      .then(
-        ({
-          data,
-          error,
-        }) => {
-          if (!error) {
-            setProducts(
-              (
-                data || []
-              ).map(
-                productFromRow,
-              ),
-            );
-          }
-        },
       );
-  };
-
-  const addProduct = (
-    product: Product,
-  ) => {
-    setProducts(
-      (current) => [
-        product,
-
-        ...current.filter(
-          (item) =>
-            item.id !==
-            product.id,
-        ),
-      ],
-    );
-  };
-
-  const updateProduct = (
-    product: Product,
-  ) => {
-    setProducts(
-      (current) =>
-        current.map(
-          (item) =>
-            item.id ===
-            product.id
-              ? product
-              : item,
-        ),
-    );
-  };
-
-  const deleteProduct = (
-    id: string,
-  ) => {
-    setProducts(
-      (current) =>
-        current.filter(
-          (product) =>
-            product.id !==
-            id,
-        ),
-    );
-
-    setCart(
-      (current) =>
-        current.filter(
-          (item) =>
-            item.productId !==
-            id,
-        ),
-    );
-
-    setWishlist(
-      (current) =>
-        current.filter(
-          (productId) =>
-            productId !==
-            id,
-        ),
-    );
-  };
+    };
 
   const saveSettings =
     async (
-      value: StoreSettings,
+      value:
+        StoreSettings,
     ) => {
       const response =
         await fetch(
@@ -1136,12 +1347,10 @@ export function StoreProvider({
             },
 
             body:
-              JSON.stringify(
-                {
-                  settings:
-                    value,
-                },
-              ),
+              JSON.stringify({
+                settings:
+                  value,
+              }),
           },
         );
 
@@ -1149,7 +1358,8 @@ export function StoreProvider({
         await response
           .json()
           .catch(
-            () => ({}),
+            () =>
+              ({}),
           );
 
       if (
@@ -1190,8 +1400,11 @@ export function StoreProvider({
             (item) =>
               item.product,
           ) as Array<{
-          product: Product;
-          quantity: number;
+          product:
+            Product;
+
+          quantity:
+            number;
         }>,
       [
         cart,
@@ -1214,24 +1427,43 @@ export function StoreProvider({
     <StoreContext.Provider
       value={{
         ready,
+
         products,
+
         cart,
+
         wishlist,
+
         recent,
+
         promos,
+
         settings,
+
         cartCount,
+
         cartProducts,
+
         addToCart,
+
         removeFromCart,
+
         updateQty,
+
         clearCart,
+
         toggleWishlist,
+
         recordRecent,
+
         placeLocalOrder,
+
         addProduct,
+
         updateProduct,
+
         deleteProduct,
+
         saveSettings,
       }}
     >
