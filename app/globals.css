@@ -1290,6 +1290,33 @@ h2{
   background:#f0d7d3;
   color:#7a332c;
 }
+/* CUSTOMER ORDER STATUS NOTES */
+
+.order-customer-note{
+  margin-top:14px;
+  padding:13px 16px;
+  border-radius:12px;
+  font-size:.88rem;
+  line-height:1.5;
+}
+
+/* Delivered / Shipped / Approved / Processing */
+.order-customer-note.sage{
+  background:#dfe9dd;
+  color:#36513a;
+}
+
+/* Payment Verification Required */
+.order-customer-note.warning{
+  background:#f2e6bf;
+  color:#6b5517;
+}
+
+/* Payment Rejected */
+.order-customer-note.error{
+  background:#f0d7d3;
+  color:#7a332c;
+}
 
 /* =========================================
    ADMIN
