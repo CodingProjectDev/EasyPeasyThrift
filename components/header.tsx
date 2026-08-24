@@ -8,7 +8,6 @@ import {
 
 import {
   Heart,
-  LogOut,
   Menu,
   Search,
   ShoppingBag,
@@ -18,7 +17,6 @@ import {
 
 import {
   useEffect,
-  useRef,
   useState,
 } from 'react';
 
@@ -32,16 +30,6 @@ export default function Header() {
   const [loggedIn, setLoggedIn] =
     useState(false);
 
-  const [
-    accountMenuOpen,
-    setAccountMenuOpen,
-  ] = useState(false);
-
-  const accountMenuRef =
-    useRef<HTMLDivElement | null>(
-      null,
-    );
-
   const {
     cartCount,
     wishlist,
@@ -52,27 +40,29 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const categoryLinks =
-    Array.from(
-      new Set(
-        products
-          .map(
-            (product) =>
-              product.category,
-          )
-          .filter(Boolean),
-      ),
-    )
-      .slice(0, 2)
-      .map(
-        (category) =>
-          [
+  /*
+   * Dynamic category navigation
+   */
+  const categoryLinks = Array.from(
+    new Set(
+      products
+        .map(
+          (product) =>
+            product.category,
+        )
+        .filter(Boolean),
+    ),
+  )
+    .slice(0, 2)
+    .map(
+      (category) =>
+        [
+          category,
+          `/shop?category=${encodeURIComponent(
             category,
-            `/shop?category=${encodeURIComponent(
-              category,
-            )}`,
-          ] as const,
-      );
+          )}`,
+        ] as const,
+    );
 
   const links = [
     ['Shop', '/shop'] as const,
@@ -80,6 +70,9 @@ export default function Header() {
     ['About', '/about'] as const,
   ];
 
+  /*
+   * Check customer login
+   */
   useEffect(() => {
     const supabase =
       createClient();
@@ -103,12 +96,6 @@ export default function Header() {
           setLoggedIn(
             !!session?.user,
           );
-
-          if (!session?.user) {
-            setAccountMenuOpen(
-              false,
-            );
-          }
         },
       );
 
@@ -117,10 +104,11 @@ export default function Header() {
     };
   }, []);
 
-  // Close menus while scrolling
+  /*
+   * Close mobile menu while scrolling
+   */
   useEffect(() => {
     function handleScroll() {
-      setAccountMenuOpen(false);
       setOpen(false);
     }
 
@@ -140,52 +128,36 @@ export default function Header() {
     };
   }, []);
 
-  // Close account dropdown
-  // when clicking outside
+  /*
+   * Close menu after navigation
+   */
   useEffect(() => {
-    function handleOutsideClick(
-      event: MouseEvent,
-    ) {
-      if (
-        accountMenuRef.current &&
-        !accountMenuRef.current.contains(
-          event.target as Node,
-        )
-      ) {
-        setAccountMenuOpen(false);
-      }
-    }
-
-    document.addEventListener(
-      'mousedown',
-      handleOutsideClick,
-    );
-
-    return () => {
-      document.removeEventListener(
-        'mousedown',
-        handleOutsideClick,
-      );
-    };
-  }, []);
-
-  // Close menus after navigation
-  useEffect(() => {
-    setAccountMenuOpen(false);
     setOpen(false);
   }, [pathname]);
 
+  /*
+   * Account icon
+   *
+   * Logged in:
+   * /account
+   *
+   * Logged out:
+   * /login
+   */
   function handleAccountClick() {
+    setOpen(false);
+
     if (!loggedIn) {
       router.push('/login');
       return;
     }
 
-    setAccountMenuOpen(
-      (value) => !value,
-    );
+    router.push('/account');
   }
 
+  /*
+   * Logout
+   */
   async function handleLogout() {
     const supabase =
       createClient();
@@ -203,13 +175,16 @@ export default function Header() {
     }
 
     setLoggedIn(false);
-    setAccountMenuOpen(false);
     setOpen(false);
 
     router.push('/');
     router.refresh();
   }
 
+  /*
+   * Hide customer header
+   * on admin pages
+   */
   if (
     pathname.startsWith('/admin')
   ) {
@@ -218,9 +193,12 @@ export default function Header() {
 
   return (
     <>
-      {/* ANNOUNCEMENT BAR */}
+      {/* =========================
+          ANNOUNCEMENT BAR
+      ========================== */}
 
-      {settings.announcementText.trim() && (
+      {settings.announcementText
+        .trim() && (
         <div
           className="announcement"
           role="region"
@@ -264,9 +242,12 @@ export default function Header() {
         </div>
       )}
 
-      {/* HEADER */}
+      {/* =========================
+          HEADER
+      ========================== */}
 
       <header className="site-header">
+
         {/* LOGO */}
 
         <Link
@@ -294,7 +275,9 @@ export default function Header() {
           )}
         </Link>
 
-        {/* DESKTOP NAVIGATION */}
+        {/* =========================
+            DESKTOP NAVIGATION
+        ========================== */}
 
         <nav className="desktop-nav">
           {links.map(
@@ -309,9 +292,12 @@ export default function Header() {
           )}
         </nav>
 
-        {/* HEADER ACTIONS */}
+        {/* =========================
+            HEADER ACTIONS
+        ========================== */}
 
         <div className="header-actions">
+
           {/* SEARCH */}
 
           <Link
@@ -340,198 +326,38 @@ export default function Header() {
             )}
           </Link>
 
-          {/* ACCOUNT */}
+          {/* =========================
+              ACCOUNT / PROFILE
+          ========================== */}
 
-          <div
-            ref={accountMenuRef}
+          <button
+            type="button"
+            onClick={
+              handleAccountClick
+            }
+            aria-label={
+              loggedIn
+                ? 'My Profile'
+                : 'Login'
+            }
+            title={
+              loggedIn
+                ? 'My Profile'
+                : 'Login'
+            }
             style={{
-              position:
-                'relative',
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              margin: 0,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              color: 'inherit',
             }}
           >
-            <button
-              type="button"
-              onClick={
-                handleAccountClick
-              }
-              aria-label={
-                loggedIn
-                  ? 'My account'
-                  : 'Login'
-              }
-              title={
-                loggedIn
-                  ? 'My account'
-                  : 'Login'
-              }
-              style={{
-                background:
-                  'none',
-                border: 'none',
-                padding: 0,
-                margin: 0,
-                cursor:
-                  'pointer',
-                display: 'flex',
-                alignItems:
-                  'center',
-                color:
-                  'inherit',
-              }}
-            >
-              <User size={20} />
-            </button>
-
-            {/* DESKTOP ACCOUNT MENU */}
-
-            {loggedIn &&
-              accountMenuOpen && (
-                <div
-                  style={{
-                    position:
-                      'absolute',
-                    top: '34px',
-                    right: 0,
-                    minWidth:
-                      '185px',
-                    background:
-                      '#fffdf8',
-                    border:
-                      '1px solid #d8d4ca',
-                    borderRadius:
-                      '12px',
-                    padding:
-                      '8px',
-                    boxShadow:
-                      '0 12px 30px rgba(0,0,0,0.12)',
-                    zIndex:
-                      9999,
-                  }}
-                >
-                  {/* MY PROFILE */}
-
-                  <Link
-                    href="/account"
-                    onClick={() =>
-                      setAccountMenuOpen(
-                        false,
-                      )
-                    }
-                    style={{
-                      display:
-                        'flex',
-                      alignItems:
-                        'center',
-                      gap: '9px',
-                      padding:
-                        '10px 12px',
-                      borderRadius:
-                        '8px',
-                      textDecoration:
-                        'none',
-                      color:
-                        'inherit',
-                      fontWeight:
-                        600,
-                    }}
-                  >
-                    <User
-                      size={17}
-                    />
-
-                    My Profile
-                  </Link>
-
-                  {/* MY ORDERS */}
-
-                  <Link
-                    href="/account/orders"
-                    onClick={() =>
-                      setAccountMenuOpen(
-                        false,
-                      )
-                    }
-                    style={{
-                      display:
-                        'flex',
-                      alignItems:
-                        'center',
-                      gap: '9px',
-                      padding:
-                        '10px 12px',
-                      borderRadius:
-                        '8px',
-                      textDecoration:
-                        'none',
-                      color:
-                        'inherit',
-                      fontWeight:
-                        600,
-                    }}
-                  >
-                    <ShoppingBag
-                      size={17}
-                    />
-
-                    My Orders
-                  </Link>
-
-                  {/* DIVIDER */}
-
-                  <div
-                    style={{
-                      height: 1,
-                      background:
-                        '#e2ded5',
-                      margin:
-                        '5px 4px',
-                    }}
-                  />
-
-                  {/* LOGOUT */}
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleLogout
-                    }
-                    style={{
-                      width:
-                        '100%',
-                      display:
-                        'flex',
-                      alignItems:
-                        'center',
-                      gap: '9px',
-                      padding:
-                        '10px 12px',
-                      border:
-                        'none',
-                      borderRadius:
-                        '8px',
-                      background:
-                        'transparent',
-                      cursor:
-                        'pointer',
-                      color:
-                        '#9b4136',
-                      fontWeight:
-                        600,
-                      fontSize:
-                        'inherit',
-                      textAlign:
-                        'left',
-                    }}
-                  >
-                    <LogOut
-                      size={17}
-                    />
-
-                    Logout
-                  </button>
-                </div>
-              )}
-          </div>
+            <User size={20} />
+          </button>
 
           {/* CART */}
 
@@ -545,26 +371,30 @@ export default function Header() {
             />
 
             {cartCount > 0 && (
-              <b>{cartCount}</b>
+              <b>
+                {cartCount}
+              </b>
             )}
           </Link>
 
-          {/* MOBILE MENU */}
+          {/* =========================
+              MOBILE MENU BUTTON
+          ========================== */}
 
           <button
             type="button"
             className="mobile-menu-btn"
-            onClick={() => {
+            onClick={() =>
               setOpen(
-                (value) =>
-                  !value,
-              );
-
-              setAccountMenuOpen(
-                false,
-              );
-            }}
-            aria-label="Menu"
+                (value) => !value,
+              )
+            }
+            aria-label={
+              open
+                ? 'Close menu'
+                : 'Open menu'
+            }
+            aria-expanded={open}
           >
             {open ? (
               <X />
@@ -575,11 +405,14 @@ export default function Header() {
         </div>
       </header>
 
-      {/* MOBILE NAVIGATION */}
+      {/* =========================
+          MOBILE NAVIGATION
+      ========================== */}
 
       {open && (
         <nav className="mobile-nav">
-          {/* STORE LINKS */}
+
+          {/* MAIN STORE LINKS */}
 
           {links.map(
             ([label, href]) => (
@@ -594,6 +427,8 @@ export default function Header() {
               </Link>
             ),
           )}
+
+          {/* DIVIDER */}
 
           <div
             style={{
@@ -616,9 +451,13 @@ export default function Header() {
             Wishlist
           </Link>
 
+          {/* =========================
+              LOGGED IN CUSTOMER
+          ========================== */}
+
           {loggedIn ? (
             <>
-              {/* PROFILE */}
+              {/* MY PROFILE */}
 
               <Link
                 href="/account"
@@ -629,7 +468,7 @@ export default function Header() {
                 My Profile
               </Link>
 
-              {/* ORDERS */}
+              {/* MY ORDERS */}
 
               <Link
                 href="/account/orders"
@@ -639,6 +478,8 @@ export default function Header() {
               >
                 My Orders
               </Link>
+
+              {/* DIVIDER */}
 
               <div
                 style={{
@@ -677,6 +518,10 @@ export default function Header() {
               </button>
             </>
           ) : (
+            /* =========================
+               NOT LOGGED IN
+            ========================== */
+
             <Link
               href="/login"
               onClick={() =>
