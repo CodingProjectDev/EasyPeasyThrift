@@ -10,7 +10,12 @@ import React, {
 
 import { productFromRow } from '@/lib/product-db';
 import { createClient } from '@/lib/supabase/client';
-import { CartItem, Order, Product, PromoCode } from '@/lib/types';
+import {
+  CartItem,
+  Order,
+  Product,
+  PromoCode,
+} from '@/lib/types';
 
 const KEYS = {
   cart: 'easypeasy_cart',
@@ -42,7 +47,8 @@ const defaultSettings: StoreSettings = {
     'Shipping: Depends on product and location • Secondhand. Standout. So Easy.',
   storeEmail: '',
   storePhone: '',
-  shippingInfo: 'Depends on product and location',
+  shippingInfo:
+    'Depends on product and location',
   returnPolicy:
     'Please make sure you check the item carefully before purchasing. By completing your purchase, you agree to this return policy.\n\nThank you for your understanding and support! ❤️',
   codEnabled: true,
@@ -62,207 +68,572 @@ type StoreContextValue = {
   promos: PromoCode[];
   settings: StoreSettings;
   cartCount: number;
-  cartProducts: Array<{ product: Product; quantity: number }>;
+
+  cartProducts: Array<{
+    product: Product;
+    quantity: number;
+  }>;
 
   addToCart: (id: string) => void;
   removeFromCart: (id: string) => void;
-  updateQty: (id: string, qty: number) => void;
+  updateQty: (
+    id: string,
+    qty: number,
+  ) => void;
+
   clearCart: () => void;
-  toggleWishlist: (id: string) => void;
-  recordRecent: (id: string) => void;
 
-  // Kept for checkout compatibility. Orders themselves live only in Supabase.
-  placeLocalOrder: (order: Order) => void;
+  toggleWishlist: (
+    id: string,
+  ) => void;
 
-  addProduct: (product: Product) => void;
-  updateProduct: (product: Product) => void;
-  deleteProduct: (id: string) => void;
+  recordRecent: (
+    id: string,
+  ) => void;
 
-  saveSettings: (settings: StoreSettings) => Promise<void>;
+  placeLocalOrder: (
+    order: Order,
+  ) => void;
+
+  addProduct: (
+    product: Product,
+  ) => void;
+
+  updateProduct: (
+    product: Product,
+  ) => void;
+
+  deleteProduct: (
+    id: string,
+  ) => void;
+
+  saveSettings: (
+    settings: StoreSettings,
+  ) => Promise<void>;
 };
 
-const StoreContext = createContext<StoreContextValue | null>(null);
+const StoreContext =
+  createContext<StoreContextValue | null>(
+    null,
+  );
 
-function load<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') return fallback;
+function load<T>(
+  key: string,
+  fallback: T,
+): T {
+  if (
+    typeof window ===
+    'undefined'
+  ) {
+    return fallback;
+  }
 
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
+    const raw =
+      localStorage.getItem(
+        key,
+      );
+
+    return raw
+      ? JSON.parse(raw)
+      : fallback;
   } catch {
     return fallback;
   }
 }
 
-function customerKey(base: string, userId: string | null) {
-  return `${base}_${userId || 'guest'}`;
+function customerKey(
+  base: string,
+  userId: string | null,
+) {
+  return `${base}_${
+    userId || 'guest'
+  }`;
 }
 
-function settingsFromRow(row: any): StoreSettings {
+function settingsFromRow(
+  row: any,
+): StoreSettings {
   return {
-    storeName: String(row?.store_name || defaultSettings.storeName),
-    tagline: String(row?.tagline || defaultSettings.tagline),
+    storeName: String(
+      row?.store_name ||
+        defaultSettings.storeName,
+    ),
+
+    tagline: String(
+      row?.tagline ||
+        defaultSettings.tagline,
+    ),
+
     announcementText:
-      typeof row?.announcement_text === 'string'
+      typeof row?.announcement_text ===
+      'string'
         ? row.announcement_text
-        : `Shipping: ${String(row?.shipping_info || defaultSettings.shippingInfo)} • ${String(
-            row?.tagline || defaultSettings.tagline,
+        : `Shipping: ${String(
+            row?.shipping_info ||
+              defaultSettings.shippingInfo,
+          )} • ${String(
+            row?.tagline ||
+              defaultSettings.tagline,
           )}`,
-    storeEmail: String(row?.store_email || ''),
-    storePhone: String(row?.store_phone || ''),
-    shippingInfo: String(row?.shipping_info || defaultSettings.shippingInfo),
-    returnPolicy: String(row?.return_policy || defaultSettings.returnPolicy),
+
+    storeEmail: String(
+      row?.store_email || '',
+    ),
+
+    storePhone: String(
+      row?.store_phone || '',
+    ),
+
+    shippingInfo: String(
+      row?.shipping_info ||
+        defaultSettings.shippingInfo,
+    ),
+
+    returnPolicy: String(
+      row?.return_policy ||
+        defaultSettings.returnPolicy,
+    ),
+
     codEnabled:
-      typeof row?.cod_enabled === 'boolean'
+      typeof row?.cod_enabled ===
+      'boolean'
         ? row.cod_enabled
         : defaultSettings.codEnabled,
+
     qrEnabled:
-      typeof row?.qr_enabled === 'boolean'
+      typeof row?.qr_enabled ===
+      'boolean'
         ? row.qr_enabled
         : defaultSettings.qrEnabled,
-    qrImage: row?.qr_image_path
-      ? String(row.qr_image_path)
-      : defaultSettings.qrImage,
-    logoImage: row?.logo_path ? String(row.logo_path) : undefined,
-    instagramUrl: row?.instagram_url ? String(row.instagram_url) : '',
-    tiktokUrl: row?.tiktok_url ? String(row.tiktok_url) : '',
-    pinterestUrl: row?.pinterest_url ? String(row.pinterest_url) : '',
+
+    qrImage:
+      row?.qr_image_path
+        ? String(
+            row.qr_image_path,
+          )
+        : defaultSettings.qrImage,
+
+    logoImage:
+      row?.logo_path
+        ? String(
+            row.logo_path,
+          )
+        : undefined,
+
+    instagramUrl:
+      row?.instagram_url
+        ? String(
+            row.instagram_url,
+          )
+        : '',
+
+    tiktokUrl:
+      row?.tiktok_url
+        ? String(
+            row.tiktok_url,
+          )
+        : '',
+
+    pinterestUrl:
+      row?.pinterest_url
+        ? String(
+            row.pinterest_url,
+          )
+        : '',
   };
 }
 
-function promoFromRow(row: any): PromoCode {
+function promoFromRow(
+  row: any,
+): PromoCode {
   return {
     id: String(row.id),
     code: String(row.code),
-    type: String(row.discount_type) as PromoCode['type'],
+    type: String(
+      row.discount_type,
+    ) as PromoCode['type'],
     value: Number(row.value),
-    expiresAt: String(row.expires_at),
-    active: Boolean(row.active),
+    expiresAt: String(
+      row.expires_at,
+    ),
+    active: Boolean(
+      row.active,
+    ),
   };
 }
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
-  const [customerUserId, setCustomerUserId] = useState<string | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [wishlist, setWishlist] = useState<string[]>([]);
-  const [recent, setRecent] = useState<string[]>([]);
-  const [promos, setPromos] = useState<PromoCode[]>([]);
-  const [settings, setSettings] = useState<StoreSettings>(defaultSettings);
+/*
+ * Sends a request to our own server.
+ *
+ * The customer's email is NOT sent
+ * from the browser.
+ *
+ * The server verifies the Supabase
+ * user and gets their email securely.
+ */
+async function sendProductNotification(
+  productId: string,
+  action:
+    | 'cart'
+    | 'wishlist',
+) {
+  try {
+    await fetch(
+      '/api/customer/product-notification',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          productId,
+          action,
+        }),
+
+        /*
+         * Helps the request complete
+         * if the customer immediately
+         * navigates to checkout.
+         */
+        keepalive: true,
+      },
+    );
+  } catch (error) {
+    /*
+     * Email failure should NEVER stop
+     * the customer from adding an item.
+     */
+    console.error(
+      'Product notification failed:',
+      error,
+    );
+  }
+}
+
+export function StoreProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [
+    ready,
+    setReady,
+  ] = useState(false);
+
+  const [
+    customerUserId,
+    setCustomerUserId,
+  ] =
+    useState<
+      string | null
+    >(null);
+
+  const [
+    products,
+    setProducts,
+  ] = useState<Product[]>([]);
+
+  const [
+    cart,
+    setCart,
+  ] = useState<CartItem[]>([]);
+
+  const [
+    wishlist,
+    setWishlist,
+  ] = useState<string[]>([]);
+
+  const [
+    recent,
+    setRecent,
+  ] = useState<string[]>([]);
+
+  const [
+    promos,
+    setPromos,
+  ] =
+    useState<PromoCode[]>([]);
+
+  const [
+    settings,
+    setSettings,
+  ] =
+    useState<StoreSettings>(
+      defaultSettings,
+    );
 
   useEffect(() => {
-    const supabase = createClient();
+    const supabase =
+      createClient();
+
     let mounted = true;
 
-    setRecent(load(KEYS.recent, []));
+    setRecent(
+      load(
+        KEYS.recent,
+        [],
+      ),
+    );
 
     async function refreshProducts() {
-      const { data, error } = await supabase
+      const {
+        data,
+        error,
+      } = await supabase
         .from('products')
         .select('*')
         .eq('active', true)
-        .order('created_at', { ascending: false });
+        .order(
+          'created_at',
+          {
+            ascending:
+              false,
+          },
+        );
 
-      if (!mounted) return;
-
-      if (error) {
-        console.error('Could not load products from Supabase:', error.message);
+      if (!mounted) {
         return;
       }
 
-      setProducts((data || []).map(productFromRow));
+      if (error) {
+        console.error(
+          'Could not load products from Supabase:',
+          error.message,
+        );
+
+        return;
+      }
+
+      setProducts(
+        (data || []).map(
+          productFromRow,
+        ),
+      );
     }
 
     async function refreshSettings() {
-      const { data, error } = await supabase
-        .from('store_settings')
+      const {
+        data,
+        error,
+      } = await supabase
+        .from(
+          'store_settings',
+        )
         .select('*')
         .eq('id', 1)
         .maybeSingle();
 
-      if (!mounted) return;
-
-      if (error) {
-        console.error('Could not load store settings from Supabase:', error.message);
+      if (!mounted) {
         return;
       }
 
-      if (data) setSettings(settingsFromRow(data));
+      if (error) {
+        console.error(
+          'Could not load store settings from Supabase:',
+          error.message,
+        );
+
+        return;
+      }
+
+      if (data) {
+        setSettings(
+          settingsFromRow(
+            data,
+          ),
+        );
+      }
     }
 
     async function refreshPromos() {
-      const { data, error } = await supabase
+      const {
+        data,
+        error,
+      } = await supabase
         .from('promo_codes')
-        .select('id,code,discount_type,value,expires_at,active')
+        .select(
+          'id,code,discount_type,value,expires_at,active',
+        )
         .eq('active', true)
-        .gte('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false });
+        .gte(
+          'expires_at',
+          new Date().toISOString(),
+        )
+        .order(
+          'created_at',
+          {
+            ascending:
+              false,
+          },
+        );
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       if (error) {
-        console.error('Could not load promo codes from Supabase:', error.message);
+        console.error(
+          'Could not load promo codes from Supabase:',
+          error.message,
+        );
+
         setPromos([]);
         return;
       }
 
-      setPromos((data || []).map(promoFromRow));
+      setPromos(
+        (data || []).map(
+          promoFromRow,
+        ),
+      );
     }
 
     async function boot() {
-      await Promise.all([refreshProducts(), refreshSettings(), refreshPromos()]);
+      await Promise.all([
+        refreshProducts(),
+        refreshSettings(),
+        refreshPromos(),
+      ]);
 
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } =
+        await supabase.auth.getUser();
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
-      const id = user?.id || null;
-      setCustomerUserId(id);
-      setCart(load(customerKey(KEYS.cart, id), []));
-      setWishlist(load(customerKey(KEYS.wishlist, id), []));
+      const id =
+        user?.id || null;
+
+      setCustomerUserId(
+        id,
+      );
+
+      setCart(
+        load(
+          customerKey(
+            KEYS.cart,
+            id,
+          ),
+          [],
+        ),
+      );
+
+      setWishlist(
+        load(
+          customerKey(
+            KEYS.wishlist,
+            id,
+          ),
+          [],
+        ),
+      );
+
       setReady(true);
     }
 
     void boot();
 
     const {
-      data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const id = session?.user?.id || null;
-      setCustomerUserId(id);
-      setCart(load(customerKey(KEYS.cart, id), []));
-      setWishlist(load(customerKey(KEYS.wishlist, id), []));
-    });
+      data: {
+        subscription:
+          authSubscription,
+      },
+    } =
+      supabase.auth.onAuthStateChange(
+        (
+          _event,
+          session,
+        ) => {
+          const id =
+            session?.user
+              ?.id || null;
 
-    const productsChannel = supabase
-      .channel('easypeasy-products-sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        () => void refreshProducts(),
-      )
-      .subscribe();
+          setCustomerUserId(
+            id,
+          );
 
-    const settingsChannel = supabase
-      .channel('easypeasy-settings-sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'store_settings' },
-        () => void refreshSettings(),
-      )
-      .subscribe();
+          setCart(
+            load(
+              customerKey(
+                KEYS.cart,
+                id,
+              ),
+              [],
+            ),
+          );
 
-    const promosChannel = supabase
-      .channel('easypeasy-promos-sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'promo_codes' },
-        () => void refreshPromos(),
-      )
-      .subscribe();
+          setWishlist(
+            load(
+              customerKey(
+                KEYS.wishlist,
+                id,
+              ),
+              [],
+            ),
+          );
+        },
+      );
+
+    const productsChannel =
+      supabase
+        .channel(
+          'easypeasy-products-sync',
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table:
+              'products',
+          },
+          () =>
+            void refreshProducts(),
+        )
+        .subscribe();
+
+    const settingsChannel =
+      supabase
+        .channel(
+          'easypeasy-settings-sync',
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table:
+              'store_settings',
+          },
+          () =>
+            void refreshSettings(),
+        )
+        .subscribe();
+
+    const promosChannel =
+      supabase
+        .channel(
+          'easypeasy-promos-sync',
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table:
+              'promo_codes',
+          },
+          () =>
+            void refreshPromos(),
+        )
+        .subscribe();
 
     function handleFocus() {
       void refreshProducts();
@@ -270,188 +641,558 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       void refreshPromos();
     }
 
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener(
+      'focus',
+      handleFocus,
+    );
 
     return () => {
       mounted = false;
+
       authSubscription.unsubscribe();
-      window.removeEventListener('focus', handleFocus);
-      void supabase.removeChannel(productsChannel);
-      void supabase.removeChannel(settingsChannel);
-      void supabase.removeChannel(promosChannel);
+
+      window.removeEventListener(
+        'focus',
+        handleFocus,
+      );
+
+      void supabase.removeChannel(
+        productsChannel,
+      );
+
+      void supabase.removeChannel(
+        settingsChannel,
+      );
+
+      void supabase.removeChannel(
+        promosChannel,
+      );
     };
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
-    localStorage.setItem(KEYS.recent, JSON.stringify(recent));
-  }, [recent, ready]);
-
-  useEffect(() => {
-    if (!ready) return;
-    localStorage.setItem(
-      customerKey(KEYS.cart, customerUserId),
-      JSON.stringify(cart),
-    );
-  }, [cart, ready, customerUserId]);
-
-  useEffect(() => {
-    if (!ready) return;
-    localStorage.setItem(
-      customerKey(KEYS.wishlist, customerUserId),
-      JSON.stringify(wishlist),
-    );
-  }, [wishlist, ready, customerUserId]);
-
-  // Keep local customer state valid when products are deleted or stock changes elsewhere.
-  useEffect(() => {
-    if (!ready) return;
-
-    const productMap = new Map(products.map((product) => [product.id, product]));
-
-    setCart((current) =>
-      current
-        .map((item) => {
-          const product = productMap.get(item.productId);
-          if (!product || product.inventory < 1) return null;
-          return {
-            ...item,
-            quantity: Math.min(item.quantity, product.inventory),
-          };
-        })
-        .filter(Boolean) as CartItem[],
-    );
-
-    setWishlist((current) =>
-      current.filter((productId) => productMap.has(productId)),
-    );
-  }, [products, ready]);
-
-  const addToCart = (id: string) => {
-    const product = products.find((item) => item.id === id);
-    if (!product || product.inventory < 1) return;
-
-    setCart((current) =>
-      current.some((item) => item.productId === id)
-        ? current.map((item) =>
-            item.productId === id
-              ? {
-                  ...item,
-                  quantity: Math.min(item.quantity + 1, product.inventory),
-                }
-              : item,
-          )
-        : [...current, { productId: id, quantity: 1 }],
-    );
-  };
-
-  const removeFromCart = (id: string) => {
-    setCart((current) => current.filter((item) => item.productId !== id));
-  };
-
-  const updateQty = (id: string, qty: number) => {
-    const product = products.find((item) => item.id === id);
-    if (!product) return;
-
-    if (qty <= 0) {
-      removeFromCart(id);
+    if (!ready) {
       return;
     }
 
-    setCart((current) =>
-      current.map((item) =>
-        item.productId === id
-          ? { ...item, quantity: Math.min(qty, product.inventory) }
-          : item,
+    localStorage.setItem(
+      KEYS.recent,
+      JSON.stringify(
+        recent,
       ),
     );
+  }, [recent, ready]);
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+
+    localStorage.setItem(
+      customerKey(
+        KEYS.cart,
+        customerUserId,
+      ),
+      JSON.stringify(
+        cart,
+      ),
+    );
+  }, [
+    cart,
+    ready,
+    customerUserId,
+  ]);
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+
+    localStorage.setItem(
+      customerKey(
+        KEYS.wishlist,
+        customerUserId,
+      ),
+      JSON.stringify(
+        wishlist,
+      ),
+    );
+  }, [
+    wishlist,
+    ready,
+    customerUserId,
+  ]);
+
+  /*
+   * Keep cart and wishlist valid
+   * when products are deleted or
+   * inventory changes elsewhere.
+   */
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+
+    const productMap =
+      new Map(
+        products.map(
+          (product) => [
+            product.id,
+            product,
+          ],
+        ),
+      );
+
+    setCart(
+      (current) =>
+        current
+          .map((item) => {
+            const product =
+              productMap.get(
+                item.productId,
+              );
+
+            if (
+              !product ||
+              product.inventory <
+                1
+            ) {
+              return null;
+            }
+
+            return {
+              ...item,
+
+              quantity:
+                Math.min(
+                  item.quantity,
+                  product.inventory,
+                ),
+            };
+          })
+          .filter(
+            Boolean,
+          ) as CartItem[],
+    );
+
+    setWishlist(
+      (current) =>
+        current.filter(
+          (productId) =>
+            productMap.has(
+              productId,
+            ),
+        ),
+    );
+  }, [products, ready]);
+
+  /*
+   * ADD TO CART
+   */
+  const addToCart = (
+    id: string,
+  ) => {
+    const product =
+      products.find(
+        (item) =>
+          item.id === id,
+      );
+
+    if (
+      !product ||
+      product.inventory < 1
+    ) {
+      return;
+    }
+
+    /*
+     * Important:
+     * We only email when this
+     * product was NOT already
+     * in the cart.
+     */
+    const alreadyInCart =
+      cart.some(
+        (item) =>
+          item.productId ===
+          id,
+      );
+
+    setCart(
+      (current) =>
+        current.some(
+          (item) =>
+            item.productId ===
+            id,
+        )
+          ? current.map(
+              (item) =>
+                item.productId ===
+                id
+                  ? {
+                      ...item,
+
+                      quantity:
+                        Math.min(
+                          item.quantity +
+                            1,
+                          product.inventory,
+                        ),
+                    }
+                  : item,
+            )
+          : [
+              ...current,
+              {
+                productId:
+                  id,
+                quantity: 1,
+              },
+            ],
+    );
+
+    /*
+     * Only logged-in customers
+     * receive notification emails.
+     */
+    if (
+      !alreadyInCart &&
+      customerUserId
+    ) {
+      void sendProductNotification(
+        id,
+        'cart',
+      );
+    }
   };
 
-  const clearCart = () => setCart([]);
-
-  const toggleWishlist = (id: string) => {
-    setWishlist((current) =>
-      current.includes(id)
-        ? current.filter((productId) => productId !== id)
-        : [...current, id],
+  /*
+   * REMOVE FROM CART
+   */
+  const removeFromCart = (
+    id: string,
+  ) => {
+    setCart(
+      (current) =>
+        current.filter(
+          (item) =>
+            item.productId !==
+            id,
+        ),
     );
   };
 
-  const recordRecent = (id: string) => {
-    setRecent((current) =>
-      [id, ...current.filter((productId) => productId !== id)].slice(0, 6),
+  /*
+   * UPDATE QUANTITY
+   *
+   * No email is sent here.
+   */
+  const updateQty = (
+    id: string,
+    qty: number,
+  ) => {
+    const product =
+      products.find(
+        (item) =>
+          item.id === id,
+      );
+
+    if (!product) {
+      return;
+    }
+
+    if (qty <= 0) {
+      removeFromCart(
+        id,
+      );
+
+      return;
+    }
+
+    setCart(
+      (current) =>
+        current.map(
+          (item) =>
+            item.productId ===
+            id
+              ? {
+                  ...item,
+
+                  quantity:
+                    Math.min(
+                      qty,
+                      product.inventory,
+                    ),
+                }
+              : item,
+        ),
     );
   };
 
-  const placeLocalOrder = (_order: Order) => {
-    // /api/orders already changed inventory atomically in Supabase. Do not subtract
-    // locally as well, because realtime may have refreshed first and caused a
-    // double-decrement in the browser. Clear the cart, then read authoritative stock.
+  /*
+   * CLEAR CART
+   */
+  const clearCart = () =>
     setCart([]);
 
-    const supabase = createClient();
+  /*
+   * WISHLIST
+   */
+  const toggleWishlist = (
+    id: string,
+  ) => {
+    const alreadySaved =
+      wishlist.includes(id);
+
+    setWishlist(
+      (current) =>
+        current.includes(
+          id,
+        )
+          ? current.filter(
+              (
+                productId,
+              ) =>
+                productId !==
+                id,
+            )
+          : [
+              ...current,
+              id,
+            ],
+    );
+
+    /*
+     * Send email only when
+     * adding to wishlist.
+     *
+     * Removing does NOT send.
+     */
+    if (
+      !alreadySaved &&
+      customerUserId
+    ) {
+      void sendProductNotification(
+        id,
+        'wishlist',
+      );
+    }
+  };
+
+  /*
+   * RECENTLY VIEWED
+   */
+  const recordRecent = (
+    id: string,
+  ) => {
+    setRecent(
+      (current) =>
+        [
+          id,
+
+          ...current.filter(
+            (
+              productId,
+            ) =>
+              productId !==
+              id,
+          ),
+        ].slice(0, 6),
+    );
+  };
+
+  /*
+   * ORDER COMPLETE
+   */
+  const placeLocalOrder = (
+    _order: Order,
+  ) => {
+    setCart([]);
+
+    const supabase =
+      createClient();
+
     void supabase
       .from('products')
       .select('*')
       .eq('active', true)
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (!error) {
-          setProducts((data || []).map(productFromRow));
-        }
-      });
+      .order(
+        'created_at',
+        {
+          ascending:
+            false,
+        },
+      )
+      .then(
+        ({
+          data,
+          error,
+        }) => {
+          if (!error) {
+            setProducts(
+              (
+                data || []
+              ).map(
+                productFromRow,
+              ),
+            );
+          }
+        },
+      );
   };
 
-  const addProduct = (product: Product) => {
-    setProducts((current) => [
-      product,
-      ...current.filter((item) => item.id !== product.id),
-    ]);
-  };
+  const addProduct = (
+    product: Product,
+  ) => {
+    setProducts(
+      (current) => [
+        product,
 
-  const updateProduct = (product: Product) => {
-    setProducts((current) =>
-      current.map((item) => (item.id === product.id ? product : item)),
+        ...current.filter(
+          (item) =>
+            item.id !==
+            product.id,
+        ),
+      ],
     );
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts((current) => current.filter((product) => product.id !== id));
-    setCart((current) => current.filter((item) => item.productId !== id));
-    setWishlist((current) => current.filter((productId) => productId !== id));
+  const updateProduct = (
+    product: Product,
+  ) => {
+    setProducts(
+      (current) =>
+        current.map(
+          (item) =>
+            item.id ===
+            product.id
+              ? product
+              : item,
+        ),
+    );
   };
 
-  const saveSettings = async (value: StoreSettings) => {
-    const response = await fetch('/api/admin/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: value }),
-    });
+  const deleteProduct = (
+    id: string,
+  ) => {
+    setProducts(
+      (current) =>
+        current.filter(
+          (product) =>
+            product.id !==
+            id,
+        ),
+    );
 
-    const payload = await response.json().catch(() => ({}));
+    setCart(
+      (current) =>
+        current.filter(
+          (item) =>
+            item.productId !==
+            id,
+        ),
+    );
 
-    if (!response.ok || !payload.settings) {
-      throw new Error(payload.error || 'Could not save store settings.');
-    }
-
-    setSettings(payload.settings as StoreSettings);
+    setWishlist(
+      (current) =>
+        current.filter(
+          (productId) =>
+            productId !==
+            id,
+        ),
+    );
   };
 
-  const cartProducts = useMemo(
-    () =>
-      cart
-        .map((item) => ({
-          product: products.find((product) => product.id === item.productId),
-          quantity: item.quantity,
-        }))
-        .filter((item) => item.product) as Array<{
-        product: Product;
-        quantity: number;
-      }>,
-    [cart, products],
-  );
+  const saveSettings =
+    async (
+      value: StoreSettings,
+    ) => {
+      const response =
+        await fetch(
+          '/api/admin/settings',
+          {
+            method:
+              'POST',
 
-  const cartCount = cartProducts.reduce((sum, item) => sum + item.quantity, 0);
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+
+            body:
+              JSON.stringify(
+                {
+                  settings:
+                    value,
+                },
+              ),
+          },
+        );
+
+      const payload =
+        await response
+          .json()
+          .catch(
+            () => ({}),
+          );
+
+      if (
+        !response.ok ||
+        !payload.settings
+      ) {
+        throw new Error(
+          payload.error ||
+            'Could not save store settings.',
+        );
+      }
+
+      setSettings(
+        payload.settings as StoreSettings,
+      );
+    };
+
+  const cartProducts =
+    useMemo(
+      () =>
+        cart
+          .map(
+            (item) => ({
+              product:
+                products.find(
+                  (
+                    product,
+                  ) =>
+                    product.id ===
+                    item.productId,
+                ),
+
+              quantity:
+                item.quantity,
+            }),
+          )
+          .filter(
+            (item) =>
+              item.product,
+          ) as Array<{
+          product: Product;
+          quantity: number;
+        }>,
+      [
+        cart,
+        products,
+      ],
+    );
+
+  const cartCount =
+    cartProducts.reduce(
+      (
+        sum,
+        item,
+      ) =>
+        sum +
+        item.quantity,
+      0,
+    );
 
   return (
     <StoreContext.Provider
@@ -484,10 +1225,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useStore() {
-  const value = useContext(StoreContext);
+  const value =
+    useContext(
+      StoreContext,
+    );
 
   if (!value) {
-    throw new Error('useStore must be used within StoreProvider');
+    throw new Error(
+      'useStore must be used within StoreProvider',
+    );
   }
 
   return value;
