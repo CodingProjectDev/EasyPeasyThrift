@@ -274,19 +274,16 @@ function promoFromRow(
  */
 async function sendProductNotification(
   productId: string,
-  action:
-    | 'cart'
-    | 'wishlist',
+  action: 'cart' | 'wishlist',
 ) {
   try {
-    await fetch(
+    const response = await fetch(
       '/api/customer/product-notification',
       {
         method: 'POST',
 
         headers: {
-          'Content-Type':
-            'application/json',
+          'Content-Type': 'application/json',
         },
 
         body: JSON.stringify({
@@ -294,21 +291,40 @@ async function sendProductNotification(
           action,
         }),
 
-        /*
-         * Helps the request complete
-         * if the customer immediately
-         * navigates to checkout.
-         */
         keepalive: true,
       },
     );
+
+    const payload = await response
+      .json()
+      .catch(() => ({}));
+
+    if (!response.ok) {
+      console.error(
+        'PRODUCT EMAIL FAILED:',
+        {
+          status: response.status,
+          productId,
+          action,
+          error:
+            payload.error ||
+            'Unknown error',
+        },
+      );
+
+      return;
+    }
+
+    console.log(
+      'PRODUCT EMAIL SENT:',
+      {
+        productId,
+        action,
+      },
+    );
   } catch (error) {
-    /*
-     * Email failure should NEVER stop
-     * the customer from adding an item.
-     */
     console.error(
-      'Product notification failed:',
+      'PRODUCT EMAIL REQUEST FAILED:',
       error,
     );
   }
