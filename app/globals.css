@@ -1614,6 +1614,30 @@ h2{
   box-shadow:var(--shadow);
 }
 
+/* Bigger admin login box on desktop only */
+@media(min-width:761px){
+  .admin-login-wrap{
+    width:min(520px,100%);
+  }
+
+  .admin-login-card{
+    width:520px;
+    padding:38px;
+  }
+
+  .admin-login-card h1{
+    font-size:3.2rem;
+  }
+
+  .admin-login-card .control{
+    padding:14px 16px;
+  }
+
+  .admin-login-card .btn{
+    padding:14px 20px;
+  }
+}
+
 .admin-login-card h1{
   font-size:2.7rem;
   margin:8px 0 12px;
