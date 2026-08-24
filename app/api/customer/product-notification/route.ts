@@ -1,35 +1,70 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-import { Resend } from 'resend';
 
-const resend = new Resend(
-  process.env.RESEND_API_KEY,
-);
+import {
+  createServerClient,
+} from '@supabase/ssr';
+
+import {
+  createClient as createSupabaseClient,
+} from '@supabase/supabase-js';
 
 type NotificationAction =
   | 'cart'
   | 'wishlist';
 
-function escapeHtml(
-  value: string,
-) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+type NotificationOperation =
+  | 'schedule'
+  | 'cancel';
+
+function getSupabaseUrl() {
+  return (
+    process.env
+      .NEXT_PUBLIC_SUPABASE_URL ||
+    ''
+  );
 }
 
-async function getSupabaseServerClient() {
+function getPublicKey() {
+  return (
+    process.env
+      .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env
+      .NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    ''
+  );
+}
+
+function getAdminKey() {
+  return (
+    process.env
+      .SUPABASE_SECRET_KEY ||
+    process.env
+      .SUPABASE_SERVICE_ROLE_KEY ||
+    ''
+  );
+}
+
+async function createAuthClient() {
+  const url =
+    getSupabaseUrl();
+
+  const key =
+    getPublicKey();
+
+  if (!url || !key) {
+    throw new Error(
+      'Supabase public URL/key is missing.',
+    );
+  }
+
   const cookieStore =
     await cookies();
 
-return createServerClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-  {
+  return createServerClient(
+    url,
+    key,
+    {
       cookies: {
         getAll() {
           return cookieStore.getAll();
@@ -53,12 +88,34 @@ return createServerClient(
               },
             );
           } catch {
-            /*
-             * Safe to ignore if cookies
-             * cannot be written here.
-             */
+            // Cookie write can be ignored here.
           }
         },
+      },
+    },
+  );
+}
+
+function createAdminClient() {
+  const url =
+    getSupabaseUrl();
+
+  const key =
+    getAdminKey();
+
+  if (!url || !key) {
+    throw new Error(
+      'Supabase server secret key is missing.',
+    );
+  }
+
+  return createSupabaseClient(
+    url,
+    key,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
     },
   );
@@ -68,41 +125,14 @@ export async function POST(
   request: Request,
 ) {
   try {
-    const fromEmail =
-      process.env
-        .CONTACT_FROM_EMAIL;
+    const authSupabase =
+      await createAuthClient();
 
-    if (
-      !process.env
-        .RESEND_API_KEY ||
-      !fromEmail
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            'Email service is not configured.',
-        },
-        {
-          status: 500,
-        },
-      );
-    }
-
-    /*
-     * Create authenticated server
-     * Supabase client.
-     */
-    const supabase =
-      await getSupabaseServerClient();
-
-    /*
-     * Verify logged-in customer.
-     */
     const {
       data: { user },
       error: userError,
     } =
-      await supabase.auth.getUser();
+      await authSupabase.auth.getUser();
 
     if (
       userError ||
@@ -119,10 +149,7 @@ export async function POST(
       );
     }
 
-    const customerEmail =
-      user.email;
-
-    if (!customerEmail) {
+    if (!user.email) {
       return NextResponse.json(
         {
           error:
@@ -148,6 +175,11 @@ export async function POST(
         | NotificationAction
         | undefined;
 
+    const operation =
+      body.operation as
+        | NotificationOperation
+        | undefined;
+
     if (!productId) {
       return NextResponse.json(
         {
@@ -167,7 +199,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            'Invalid notification action.',
+            'Invalid action.',
         },
         {
           status: 400,
@@ -175,18 +207,97 @@ export async function POST(
       );
     }
 
+    if (
+      operation !== 'schedule' &&
+      operation !== 'cancel'
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Invalid operation.',
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const admin =
+      createAdminClient();
+
     /*
-     * Load real product data
-     * from Supabase.
+     * CANCEL PENDING EMAIL
+     */
+    if (
+      operation === 'cancel'
+    ) {
+      const {
+        error:
+          cancelError,
+      } =
+        await admin
+          .from(
+            'product_notification_queue',
+          )
+          .update({
+            status:
+              'cancelled',
+
+            cancelled_at:
+              new Date()
+                .toISOString(),
+          })
+          .eq(
+            'user_id',
+            user.id,
+          )
+          .eq(
+            'product_id',
+            productId,
+          )
+          .eq(
+            'action',
+            action,
+          )
+          .eq(
+            'status',
+            'pending',
+          );
+
+      if (cancelError) {
+        console.error(
+          'NOTIFICATION CANCEL ERROR:',
+          cancelError,
+        );
+
+        return NextResponse.json(
+          {
+            error:
+              'Could not cancel notification.',
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        cancelled: true,
+      });
+    }
+
+    /*
+     * LOAD REAL PRODUCT DATA
      */
     const {
       data: product,
       error: productError,
     } =
-      await supabase
+      await admin
         .from('products')
         .select(
-          'id,name,slug,active',
+          'id,name,active,inventory',
         )
         .eq(
           'id',
@@ -196,7 +307,8 @@ export async function POST(
 
     if (
       productError ||
-      !product
+      !product ||
+      !product.active
     ) {
       return NextResponse.json(
         {
@@ -209,8 +321,24 @@ export async function POST(
       );
     }
 
+    if (
+      Number(
+        product.inventory,
+      ) < 1
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Product is sold out.',
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
     /*
-     * Customer name.
+     * CUSTOMER NAME
      */
     let customerName =
       String(
@@ -221,15 +349,12 @@ export async function POST(
           '',
       ).trim();
 
-    /*
-     * If auth metadata has no name,
-     * try customer's latest order.
-     */
     if (!customerName) {
       const {
-        data: latestOrder,
+        data:
+          latestOrder,
       } =
-        await supabase
+        await admin
           .from('orders')
           .select(
             'full_name',
@@ -257,251 +382,98 @@ export async function POST(
     }
 
     /*
-     * Store name.
+     * Remove any previous pending
+     * notification for the same item.
      */
+    await admin
+      .from(
+        'product_notification_queue',
+      )
+      .update({
+        status:
+          'cancelled',
+
+        cancelled_at:
+          new Date()
+            .toISOString(),
+      })
+      .eq(
+        'user_id',
+        user.id,
+      )
+      .eq(
+        'product_id',
+        productId,
+      )
+      .eq(
+        'action',
+        action,
+      )
+      .eq(
+        'status',
+        'pending',
+      );
+
+    /*
+     * EXACTLY 10 MINUTES FROM NOW
+     */
+    const sendAt =
+      new Date(
+        Date.now() +
+          10 * 60 * 1000,
+      ).toISOString();
+
     const {
-      data:
-        storeSettings,
+      data: queued,
+      error: queueError,
     } =
-      await supabase
+      await admin
         .from(
-          'store_settings',
+          'product_notification_queue',
         )
+        .insert({
+          user_id:
+            user.id,
+
+          customer_email:
+            user.email,
+
+          customer_name:
+            customerName ||
+            null,
+
+          product_id:
+            productId,
+
+          product_name:
+            String(
+              product.name ||
+                'Product',
+            ),
+
+          action,
+
+          status:
+            'pending',
+
+          send_at:
+            sendAt,
+        })
         .select(
-          'store_name',
+          'id,send_at',
         )
-        .eq(
-          'id',
-          1,
-        )
-        .maybeSingle();
+        .single();
 
-    const storeName =
-      String(
-        storeSettings
-          ?.store_name ||
-          'EasyPeasy-Thrift',
-      );
-
-    /*
-     * Website URL.
-     */
-    const origin =
-      process.env
-        .NEXT_PUBLIC_APP_URL ||
-      new URL(
-        request.url,
-      ).origin;
-
-    const baseUrl =
-      origin.replace(
-        /\/$/,
-        '',
-      );
-
-    const destination =
-      action === 'cart'
-        ? `${baseUrl}/cart`
-        : `${baseUrl}/wishlist`;
-
-    const productName =
-      String(
-        product.name ||
-          'Product',
-      );
-
-    const safeProductName =
-      escapeHtml(
-        productName,
-      );
-
-    const safeStoreName =
-      escapeHtml(
-        storeName,
-      );
-
-    const safeCustomerName =
-      escapeHtml(
-        customerName,
-      );
-
-    const isCart =
-      action === 'cart';
-
-    const subject =
-      isCart
-        ? `${productName} was added to your cart`
-        : `${productName} was saved to your wishlist`;
-
-    const headline =
-      isCart
-        ? 'Added to your cart 🛍️'
-        : 'Saved to your wishlist ❤️';
-
-    const message =
-      isCart
-        ? `<strong>${safeProductName}</strong> is now in your EasyPeasy-Thrift cart.`
-        : `<strong>${safeProductName}</strong> was saved to your EasyPeasy-Thrift wishlist.`;
-
-    const buttonText =
-      isCart
-        ? 'View Cart'
-        : 'View Wishlist';
-
-    /*
-     * Send email.
-     */
-    const {
-      error:
-        resendError,
-    } =
-      await resend.emails.send({
-        from: fromEmail,
-
-        to: customerEmail,
-
-        subject,
-
-        html: `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-</head>
-
-<body
-  style="
-    margin:0;
-    padding:0;
-    background:#f4efe6;
-    font-family:Arial,Helvetica,sans-serif;
-    color:#171714;
-  "
->
-  <div
-    style="
-      max-width:600px;
-      margin:0 auto;
-      padding:32px 18px;
-    "
-  >
-    <div
-      style="
-        background:#fffdf8;
-        border:1px solid #d9d2c5;
-        border-radius:20px;
-        overflow:hidden;
-      "
-    >
-      <div
-        style="
-          background:#536752;
-          color:white;
-          padding:20px 24px;
-        "
-      >
-        <div
-          style="
-            font-size:20px;
-            font-weight:700;
-          "
-        >
-          ${safeStoreName}
-        </div>
-
-        <div
-          style="
-            font-size:12px;
-            margin-top:4px;
-            opacity:.85;
-          "
-        >
-          Secondhand. Standout. So Easy.
-        </div>
-      </div>
-
-      <div
-        style="
-          padding:28px 24px;
-        "
-      >
-        <h1
-          style="
-            margin:0 0 18px;
-            font-size:25px;
-          "
-        >
-          ${headline}
-        </h1>
-
-        <p
-          style="
-            font-size:16px;
-            line-height:1.6;
-            margin:0 0 14px;
-          "
-        >
-          ${
-            safeCustomerName
-              ? `Hi <strong>${safeCustomerName}</strong>,`
-              : 'Hi there,'
-          }
-        </p>
-
-        <p
-          style="
-            font-size:16px;
-            line-height:1.7;
-            margin:0 0 24px;
-            color:#4f4c45;
-          "
-        >
-          ${message}
-        </p>
-
-        <a
-          href="${destination}"
-          style="
-            display:inline-block;
-            background:#536752;
-            color:#ffffff;
-            text-decoration:none;
-            font-weight:700;
-            padding:12px 20px;
-            border-radius:999px;
-          "
-        >
-          ${buttonText}
-        </a>
-
-        <p
-          style="
-            margin:28px 0 0;
-            font-size:13px;
-            line-height:1.6;
-            color:#726f67;
-          "
-        >
-          Thank you for shopping with ${safeStoreName}.
-        </p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-        `,
-      });
-
-    if (resendError) {
+    if (queueError) {
       console.error(
-        'RESEND PRODUCT NOTIFICATION ERROR:',
-        resendError,
+        'NOTIFICATION QUEUE ERROR:',
+        queueError,
       );
 
       return NextResponse.json(
         {
           error:
-            'Could not send notification email.',
+            'Could not schedule email.',
         },
         {
           status: 500,
@@ -511,6 +483,14 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
+
+      scheduled: true,
+
+      notificationId:
+        queued.id,
+
+      sendAt:
+        queued.send_at,
     });
   } catch (error) {
     console.error(
@@ -521,7 +501,9 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          'Could not send notification email.',
+          error instanceof Error
+            ? error.message
+            : 'Could not schedule notification.',
       },
       {
         status: 500,
