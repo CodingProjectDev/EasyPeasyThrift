@@ -38,7 +38,9 @@ export default function Header() {
   ] = useState(false);
 
   const accountMenuRef =
-    useRef<HTMLDivElement | null>(null);
+    useRef<HTMLDivElement | null>(
+      null,
+    );
 
   const {
     cartCount,
@@ -50,14 +52,27 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const categoryLinks = Array.from(
-    new Set(products.map((product) => product.category).filter(Boolean)),
-  )
-    .slice(0, 2)
-    .map((category) => [
-      category,
-      `/shop?category=${encodeURIComponent(category)}`,
-    ] as const);
+  const categoryLinks =
+    Array.from(
+      new Set(
+        products
+          .map(
+            (product) =>
+              product.category,
+          )
+          .filter(Boolean),
+      ),
+    )
+      .slice(0, 2)
+      .map(
+        (category) =>
+          [
+            category,
+            `/shop?category=${encodeURIComponent(
+              category,
+            )}`,
+          ] as const,
+      );
 
   const links = [
     ['Shop', '/shop'] as const,
@@ -66,7 +81,8 @@ export default function Header() {
   ];
 
   useEffect(() => {
-    const supabase = createClient();
+    const supabase =
+      createClient();
 
     async function checkUser() {
       const {
@@ -101,7 +117,7 @@ export default function Header() {
     };
   }, []);
 
-  // Close account/mobile menus while scrolling.
+  // Close menus while scrolling
   useEffect(() => {
     function handleScroll() {
       setAccountMenuOpen(false);
@@ -111,7 +127,9 @@ export default function Header() {
     window.addEventListener(
       'scroll',
       handleScroll,
-      { passive: true },
+      {
+        passive: true,
+      },
     );
 
     return () => {
@@ -122,7 +140,8 @@ export default function Header() {
     };
   }, []);
 
-  // Close account menu when clicking outside.
+  // Close account dropdown
+  // when clicking outside
   useEffect(() => {
     function handleOutsideClick(
       event: MouseEvent,
@@ -150,6 +169,7 @@ export default function Header() {
     };
   }, []);
 
+  // Close menus after navigation
   useEffect(() => {
     setAccountMenuOpen(false);
     setOpen(false);
@@ -178,6 +198,7 @@ export default function Header() {
         'Logout error:',
         error.message,
       );
+
       return;
     }
 
@@ -197,43 +218,57 @@ export default function Header() {
 
   return (
     <>
-{settings.announcementText.trim() && (
-  <div
-    className="announcement"
-    role="region"
-    aria-label="Store announcement"
-  >
-    <div className="announcement-track">
-      <div className="announcement-group">
-        <span className="announcement-item">
-          {settings.announcementText}
-        </span>
+      {/* ANNOUNCEMENT BAR */}
 
-        <span
-          className="announcement-item"
-          aria-hidden="true"
+      {settings.announcementText.trim() && (
+        <div
+          className="announcement"
+          role="region"
+          aria-label="Store announcement"
         >
-          {settings.announcementText}
-        </span>
-      </div>
+          <div className="announcement-track">
+            <div className="announcement-group">
+              <span className="announcement-item">
+                {
+                  settings.announcementText
+                }
+              </span>
 
-      <div
-        className="announcement-group"
-        aria-hidden="true"
-      >
-        <span className="announcement-item">
-          {settings.announcementText}
-        </span>
+              <span
+                className="announcement-item"
+                aria-hidden="true"
+              >
+                {
+                  settings.announcementText
+                }
+              </span>
+            </div>
 
-        <span className="announcement-item">
-          {settings.announcementText}
-        </span>
-      </div>
-    </div>
-  </div>
-)}
+            <div
+              className="announcement-group"
+              aria-hidden="true"
+            >
+              <span className="announcement-item">
+                {
+                  settings.announcementText
+                }
+              </span>
+
+              <span className="announcement-item">
+                {
+                  settings.announcementText
+                }
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HEADER */}
 
       <header className="site-header">
+        {/* LOGO */}
+
         <Link
           className="brand"
           href="/"
@@ -259,6 +294,8 @@ export default function Header() {
           )}
         </Link>
 
+        {/* DESKTOP NAVIGATION */}
+
         <nav className="desktop-nav">
           {links.map(
             ([label, href]) => (
@@ -272,13 +309,19 @@ export default function Header() {
           )}
         </nav>
 
+        {/* HEADER ACTIONS */}
+
         <div className="header-actions">
+          {/* SEARCH */}
+
           <Link
             href="/shop"
             aria-label="Search"
           >
             <Search size={20} />
           </Link>
+
+          {/* WISHLIST */}
 
           <Link
             href="/wishlist"
@@ -296,6 +339,8 @@ export default function Header() {
               </b>
             )}
           </Link>
+
+          {/* ACCOUNT */}
 
           <div
             ref={accountMenuRef}
@@ -337,6 +382,8 @@ export default function Header() {
               <User size={20} />
             </button>
 
+            {/* DESKTOP ACCOUNT MENU */}
+
             {loggedIn &&
               accountMenuOpen && (
                 <div
@@ -346,7 +393,7 @@ export default function Header() {
                     top: '34px',
                     right: 0,
                     minWidth:
-                      '170px',
+                      '185px',
                     background:
                       '#fffdf8',
                     border:
@@ -361,6 +408,42 @@ export default function Header() {
                       9999,
                   }}
                 >
+                  {/* MY PROFILE */}
+
+                  <Link
+                    href="/account"
+                    onClick={() =>
+                      setAccountMenuOpen(
+                        false,
+                      )
+                    }
+                    style={{
+                      display:
+                        'flex',
+                      alignItems:
+                        'center',
+                      gap: '9px',
+                      padding:
+                        '10px 12px',
+                      borderRadius:
+                        '8px',
+                      textDecoration:
+                        'none',
+                      color:
+                        'inherit',
+                      fontWeight:
+                        600,
+                    }}
+                  >
+                    <User
+                      size={17}
+                    />
+
+                    My Profile
+                  </Link>
+
+                  {/* MY ORDERS */}
+
                   <Link
                     href="/account/orders"
                     onClick={() =>
@@ -389,8 +472,23 @@ export default function Header() {
                     <ShoppingBag
                       size={17}
                     />
+
                     My Orders
                   </Link>
+
+                  {/* DIVIDER */}
+
+                  <div
+                    style={{
+                      height: 1,
+                      background:
+                        '#e2ded5',
+                      margin:
+                        '5px 4px',
+                    }}
+                  />
+
+                  {/* LOGOUT */}
 
                   <button
                     type="button"
@@ -428,11 +526,14 @@ export default function Header() {
                     <LogOut
                       size={17}
                     />
+
                     Logout
                   </button>
                 </div>
               )}
           </div>
+
+          {/* CART */}
 
           <Link
             href="/cart"
@@ -447,6 +548,8 @@ export default function Header() {
               <b>{cartCount}</b>
             )}
           </Link>
+
+          {/* MOBILE MENU */}
 
           <button
             type="button"
@@ -472,8 +575,12 @@ export default function Header() {
         </div>
       </header>
 
+      {/* MOBILE NAVIGATION */}
+
       {open && (
         <nav className="mobile-nav">
+          {/* STORE LINKS */}
+
           {links.map(
             ([label, href]) => (
               <Link
@@ -488,6 +595,18 @@ export default function Header() {
             ),
           )}
 
+          <div
+            style={{
+              height: 1,
+              background:
+                '#e2ded5',
+              margin:
+                '4px 0',
+            }}
+          />
+
+          {/* WISHLIST */}
+
           <Link
             href="/wishlist"
             onClick={() =>
@@ -499,6 +618,19 @@ export default function Header() {
 
           {loggedIn ? (
             <>
+              {/* PROFILE */}
+
+              <Link
+                href="/account"
+                onClick={() =>
+                  setOpen(false)
+                }
+              >
+                My Profile
+              </Link>
+
+              {/* ORDERS */}
+
               <Link
                 href="/account/orders"
                 onClick={() =>
@@ -507,6 +639,18 @@ export default function Header() {
               >
                 My Orders
               </Link>
+
+              <div
+                style={{
+                  height: 1,
+                  background:
+                    '#e2ded5',
+                  margin:
+                    '4px 0',
+                }}
+              />
+
+              {/* LOGOUT */}
 
               <button
                 type="button"
