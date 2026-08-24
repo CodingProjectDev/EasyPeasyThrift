@@ -1,15 +1,20 @@
-import type { Metadata, Viewport } from 'next';
+import type {
+  Metadata,
+  Viewport,
+} from 'next';
 
 import './globals.css';
 
 import Header from '@/components/header';
 import Footer from '@/components/footer';
-import WhatsAppChat from '@/components/whatsapp-chat';
+import StoreAssistant from '@/components/store-assistant';
 import PWARegister from '@/components/pwa-register';
 import { StoreProvider } from '@/components/store-provider';
 
 export const metadata: Metadata = {
-  title: 'EasyPeasy-Thrift | Secondhand. Standout. So Easy.',
+  title:
+    'EasyPeasy-Thrift | Secondhand. Standout. So Easy.',
+
   description:
     'Curated one-of-one thrift and vintage fashion with honest condition notes and measurements.',
 
@@ -34,7 +39,9 @@ export const metadata: Metadata = {
         type: 'image/png',
       },
     ],
-    apple: '/apple-touch-icon.png',
+
+    apple:
+      '/apple-touch-icon.png',
   },
 };
 
@@ -61,7 +68,7 @@ export default function RootLayout({
 
           <Footer />
 
-          <WhatsAppChat />
+          <StoreAssistant />
 
           <PWARegister />
         </StoreProvider>
