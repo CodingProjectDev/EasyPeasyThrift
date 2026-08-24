@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,7 +17,7 @@ import { money } from '@/lib/format';
 
 export default function ProductPage() {
   const router = useRouter();
-
+  const [showFullDescription, setShowFullDescription] = useState(false);
   const { slug } =
     useParams<{ slug: string }>();
 
@@ -82,6 +82,14 @@ export default function ProductPage() {
       </div>
     );
   }
+  const descriptionWords = product.description.trim().split(/\s+/);
+
+const hasLongDescription = descriptionWords.length > 80;
+
+const displayedDescription =
+  hasLongDescription && !showFullDescription
+    ? `${descriptionWords.slice(0, 80).join(' ')}...`
+    : product.description;
 
   /*
    * RELATED PRODUCTS
@@ -238,12 +246,24 @@ export default function ProductPage() {
 
 <div className="product-description-box">
   <h3 className="product-description-title">
-    Description
+    Description:
   </h3>
 
   <p className="product-description">
-    {product.description}
+    {displayedDescription}
   </p>
+
+  {hasLongDescription && (
+    <button
+      type="button"
+      className="description-toggle"
+      onClick={() =>
+        setShowFullDescription((current) => !current)
+      }
+    >
+      {showFullDescription ? '⌃ See less' : 'See more'}
+    </button>
+  )}
 </div>
 
           {/* MEASUREMENTS */}
