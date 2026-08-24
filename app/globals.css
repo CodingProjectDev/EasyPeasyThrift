@@ -920,7 +920,6 @@ h2{
 .product-description-box{
   margin:22px 0;
 }
-
 .product-description-title{
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:1.05rem;
@@ -938,23 +937,19 @@ h2{
   line-height:1.65;
   white-space:pre-line;
 }
-
-.product-description-title{
-  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  font-size:1.05rem;
-  font-weight:900;
-  line-height:1.2;
-  margin:0 0 10px;
-  color:var(--black);
+.description-toggle{
+  margin-top:8px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--sage-dark);
+  font-size:.95rem;
+  font-weight:700;
+  cursor:pointer;
 }
 
-.product-description{
-  margin:0;
-  color:#4f4c45;
-  font-size:1rem;
-  font-weight:400;
-  line-height:1.65;
-  white-space:pre-line;
+.description-toggle:hover{
+  text-decoration:underline;
 }
 
 .measurements{
