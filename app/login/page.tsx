@@ -1,150 +1,338 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import {
+  FormEvent,
+  useState,
+} from 'react';
+
+import {
+  useRouter,
+} from 'next/navigation';
+
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+
+import {
+  createClient,
+} from '@/lib/supabase/client';
 
 export default function LoginPage() {
-  const router = useRouter();
+  const router =
+    useRouter();
 
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [
+    mode,
+    setMode,
+  ] =
+    useState<
+      'login' | 'signup'
+    >('login');
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  const [
+    message,
+    setMessage,
+  ] = useState('');
+
+  const [
+    messageType,
+    setMessageType,
+  ] =
+    useState<
+      'success' | 'error'
+    >('success');
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  async function submit(
+    event:
+      FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     setLoading(true);
     setMessage('');
+    setMessageType(
+      'success',
+    );
 
-    const form = new FormData(event.currentTarget);
+    const form =
+      new FormData(
+        event.currentTarget,
+      );
 
-    const name = String(form.get('name') || '').trim();
-    const email = String(form.get('email') || '').trim();
-    const password = String(form.get('password') || '');
+    const name =
+      String(
+        form.get('name') ||
+          '',
+      ).trim();
 
-    const supabase = createClient();
+    const email =
+      String(
+        form.get('email') ||
+          '',
+      )
+        .trim()
+        .toLowerCase();
+
+    const password =
+      String(
+        form.get(
+          'password',
+        ) || '',
+      );
+
+    const supabase =
+      createClient();
 
     try {
-      // SIGN UP
-      if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              name,
+      /*
+       * =========================
+       * SIGN UP
+       * =========================
+       */
+      if (
+        mode === 'signup'
+      ) {
+        const {
+          data,
+          error,
+        } =
+          await supabase.auth.signUp(
+            {
+              email,
+              password,
+
+              options: {
+                data: {
+                  name,
+                },
+              },
             },
-          },
-        });
+          );
 
         if (error) {
-          setMessage(`ERROR: ${error.message}`);
-          return;
-        }
+          setMessageType(
+            'error',
+          );
 
-        if (data.user) {
-          // Email confirmation OFF
-          if (data.session) {
-            setMessage('Account created successfully.');
-
-            setTimeout(() => {
-              router.push('/account/orders');
-              router.refresh();
-            }, 700);
-
-            return;
-          }
-
-          // Email confirmation ON
           setMessage(
-            'Account created. Please check your email to confirm your account.'
+            error.message,
           );
 
           return;
         }
 
+        /*
+         * EMAIL CONFIRMATION OFF
+         *
+         * A session means the account
+         * was created and the customer
+         * was logged in immediately.
+         */
+        if (data.session) {
+          setMessageType(
+            'success',
+          );
+
+          setMessage(
+            'Account created successfully.',
+          );
+
+          window.setTimeout(
+            () => {
+              router.push(
+                '/account',
+              );
+
+              router.refresh();
+            },
+            700,
+          );
+
+          return;
+        }
+
+        /*
+         * EMAIL CONFIRMATION ON
+         *
+         * Supabase intentionally does
+         * not always reveal whether an
+         * email already has an account.
+         *
+         * Therefore we use a message
+         * that is correct for BOTH:
+         *
+         * - brand-new customer
+         * - existing customer
+         */
+        setMessageType(
+          'success',
+        );
+
         setMessage(
-          'Signup finished, but no user was returned.'
+          'If this email is new, we sent you a confirmation link. If you already have an account, please log in.',
         );
 
         return;
       }
 
-      // LOGIN
-      const { data, error } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      /*
+       * =========================
+       * LOGIN
+       * =========================
+       */
+      const {
+        error,
+      } =
+        await supabase.auth.signInWithPassword(
+          {
+            email,
+            password,
+          },
+        );
 
       if (error) {
-        setMessage(`ERROR: ${error.message}`);
+        setMessageType(
+          'error',
+        );
+
+        setMessage(
+          error.message,
+        );
+
         return;
       }
 
-      setMessage('Login successful.');
+      setMessageType(
+        'success',
+      );
 
-      setTimeout(() => {
-        router.push('/account/orders');
-        router.refresh();
-      }, 500);
+      setMessage(
+        'Login successful.',
+      );
+
+      window.setTimeout(
+        () => {
+          router.push(
+            '/account',
+          );
+
+          router.refresh();
+        },
+        500,
+      );
     } catch (error) {
-      console.error('AUTH ERROR:', error);
+      console.error(
+        'AUTH ERROR:',
+        error,
+      );
+
+      setMessageType(
+        'error',
+      );
 
       setMessage(
         error instanceof Error
-          ? `ERROR: ${error.message}`
-          : 'ERROR: Something went wrong.'
+          ? error.message
+          : 'Something went wrong. Please try again.',
       );
     } finally {
       setLoading(false);
     }
   }
 
-  function switchMode(newMode: 'login' | 'signup') {
+  function switchMode(
+    newMode:
+      | 'login'
+      | 'signup',
+  ) {
     setMode(newMode);
+
     setMessage('');
+
+    setMessageType(
+      'success',
+    );
   }
 
   return (
     <div className="container">
       <div className="auth-wrap panel">
         <span className="eyebrow">
-          Your EasyPeasy account
+          Your EasyPeasy
+          account
         </span>
 
-        <h2 style={{ marginTop: 12 }}>
-          {mode === 'login'
+        <h2
+          style={{
+            marginTop: 12,
+          }}
+        >
+          {mode ===
+          'login'
             ? 'Welcome back.'
             : 'Join the thrift list.'}
         </h2>
 
+        {/* LOGIN / SIGNUP TABS */}
+
         <div className="auth-tabs">
           <button
             type="button"
-            className={mode === 'login' ? 'active' : ''}
-            onClick={() => switchMode('login')}
+            className={
+              mode ===
+              'login'
+                ? 'active'
+                : ''
+            }
+            onClick={() =>
+              switchMode(
+                'login',
+              )
+            }
           >
             Login
           </button>
 
           <button
             type="button"
-            className={mode === 'signup' ? 'active' : ''}
-            onClick={() => switchMode('signup')}
+            className={
+              mode ===
+              'signup'
+                ? 'active'
+                : ''
+            }
+            onClick={() =>
+              switchMode(
+                'signup',
+              )
+            }
           >
             Sign up
           </button>
         </div>
 
-        <form className="stack" onSubmit={submit}>
-          {mode === 'signup' && (
+        <form
+          className="stack"
+          onSubmit={
+            submit
+          }
+        >
+          {/* NAME */}
+
+          {mode ===
+            'signup' && (
             <div className="field">
-              <label>Name</label>
+              <label
+                htmlFor="auth-name"
+              >
+                Name
+              </label>
 
               <input
+                id="auth-name"
                 className="control"
                 name="name"
                 type="text"
@@ -155,10 +343,17 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* EMAIL */}
+
           <div className="field">
-            <label>Email</label>
+            <label
+              htmlFor="auth-email"
+            >
+              Email
+            </label>
 
             <input
+              id="auth-email"
               className="control"
               name="email"
               type="email"
@@ -168,17 +363,25 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* PASSWORD */}
+
           <div className="field">
-            <label>Password</label>
+            <label
+              htmlFor="auth-password"
+            >
+              Password
+            </label>
 
             <input
+              id="auth-password"
               className="control"
               name="password"
               type="password"
               placeholder="Minimum 6 characters"
               minLength={6}
               autoComplete={
-                mode === 'login'
+                mode ===
+                'login'
                   ? 'current-password'
                   : 'new-password'
               }
@@ -186,73 +389,169 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Forgot Password */}
-          {mode === 'login' && (
+          {/* FORGOT PASSWORD */}
+
+          {mode ===
+            'login' && (
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                marginTop: -4,
+                display:
+                  'flex',
+
+                justifyContent:
+                  'flex-end',
+
+                marginTop:
+                  -4,
               }}
             >
               <Link
                 href="/forgot-password"
                 style={{
-                  fontSize: '0.84rem',
-                  textDecoration: 'none',
-                  fontWeight: 600,
+                  fontSize:
+                    '0.84rem',
+
+                  textDecoration:
+                    'none',
+
+                  fontWeight:
+                    600,
                 }}
               >
-                Forgot password?
+                Forgot
+                password?
               </Link>
             </div>
           )}
 
+          {/* SUBMIT */}
+
           <button
             className="btn sage"
             type="submit"
-            disabled={loading}
+            disabled={
+              loading
+            }
           >
             {loading
               ? 'Please wait...'
-              : mode === 'signup'
+              : mode ===
+                  'signup'
                 ? 'Create account'
                 : 'Login'}
           </button>
 
+          {/* MESSAGE */}
+
           {message && (
             <div
-              className="notice sage"
+              className={
+                messageType ===
+                'error'
+                  ? 'notice brown'
+                  : 'notice sage'
+              }
               style={{
-                marginTop: 12,
-                wordBreak: 'break-word',
+                marginTop:
+                  12,
+
+                wordBreak:
+                  'break-word',
               }}
             >
               {message}
+
+              {mode ===
+                'signup' &&
+                messageType ===
+                  'success' && (
+                  <div
+                    style={{
+                      marginTop:
+                        10,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        switchMode(
+                          'login',
+                        )
+                      }
+                      style={{
+                        padding:
+                          0,
+
+                        border:
+                          0,
+
+                        background:
+                          'transparent',
+
+                        cursor:
+                          'pointer',
+
+                        font:
+                          'inherit',
+
+                        fontWeight:
+                          700,
+
+                        textDecoration:
+                          'underline',
+                      }}
+                    >
+                      Go to
+                      Login
+                    </button>
+                  </div>
+                )}
             </div>
           )}
         </form>
 
+        {/* BOTTOM SWITCH */}
+
         <div
           style={{
             marginTop: 20,
-            textAlign: 'center',
+            textAlign:
+              'center',
           }}
         >
-          {mode === 'login' ? (
+          {mode ===
+          'login' ? (
             <p className="muted">
-              Don&apos;t have an account?{' '}
+              Don&apos;t have
+              an account?{' '}
+
               <button
                 type="button"
-                onClick={() => switchMode('signup')}
+                onClick={() =>
+                  switchMode(
+                    'signup',
+                  )
+                }
                 style={{
-                  background: 'none',
-                  border: 'none',
+                  background:
+                    'none',
+
+                  border:
+                    'none',
+
                   padding: 0,
-                  cursor: 'pointer',
-                  font: 'inherit',
-                  fontWeight: 700,
-                  textDecoration: 'underline',
+
+                  cursor:
+                    'pointer',
+
+                  font:
+                    'inherit',
+
+                  fontWeight:
+                    700,
+
+                  textDecoration:
+                    'underline',
                 }}
               >
                 Create one
@@ -260,18 +559,36 @@ export default function LoginPage() {
             </p>
           ) : (
             <p className="muted">
-              Already have an account?{' '}
+              Already have an
+              account?{' '}
+
               <button
                 type="button"
-                onClick={() => switchMode('login')}
+                onClick={() =>
+                  switchMode(
+                    'login',
+                  )
+                }
                 style={{
-                  background: 'none',
-                  border: 'none',
+                  background:
+                    'none',
+
+                  border:
+                    'none',
+
                   padding: 0,
-                  cursor: 'pointer',
-                  font: 'inherit',
-                  fontWeight: 700,
-                  textDecoration: 'underline',
+
+                  cursor:
+                    'pointer',
+
+                  font:
+                    'inherit',
+
+                  fontWeight:
+                    700,
+
+                  textDecoration:
+                    'underline',
                 }}
               >
                 Login
