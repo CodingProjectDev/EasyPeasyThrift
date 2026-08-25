@@ -390,18 +390,21 @@ export async function POST(
         '',
       );
 
-    const {
-      error: emailError,
-    } =
-      await resend.emails.send({
-        from: fromEmail,
+const {
+  error: emailError,
+} =
+  await resend.emails.send({
+    from: fromEmail,
 
-        to: customerEmail,
+    to: customerEmail,
 
-        subject:
-          `Order ${order.public_order_id} confirmed | EasyPeasy-Thrift`,
+    replyTo:
+      process.env.STORE_REPLY_TO_EMAIL,
 
-        html: `
+    subject:
+      `Order ${order.public_order_id} confirmed | EasyPeasy-Thrift`,
+
+    html: `
 <!DOCTYPE html>
 <html>
 <head>
