@@ -66,6 +66,64 @@ export default function AdminDashboard() {
     [orders],
   );
 
+  const salesReport = useMemo(() => {
+  const now = new Date();
+
+  let dailySales = 0;
+  let monthlySales = 0;
+  let yearlySales = 0;
+
+  let dailyOrders = 0;
+  let monthlyOrders = 0;
+  let yearlyOrders = 0;
+
+  orders
+    .filter(
+      (order) =>
+        order.status !== 'Payment Rejected',
+    )
+    .forEach((order) => {
+      const orderDate = new Date(order.createdAt);
+      const amount = Number(order.total || 0);
+
+      const isToday =
+        orderDate.getFullYear() === now.getFullYear() &&
+        orderDate.getMonth() === now.getMonth() &&
+        orderDate.getDate() === now.getDate();
+
+      const isThisMonth =
+        orderDate.getFullYear() === now.getFullYear() &&
+        orderDate.getMonth() === now.getMonth();
+
+      const isThisYear =
+        orderDate.getFullYear() === now.getFullYear();
+
+      if (isToday) {
+        dailySales += amount;
+        dailyOrders += 1;
+      }
+
+      if (isThisMonth) {
+        monthlySales += amount;
+        monthlyOrders += 1;
+      }
+
+      if (isThisYear) {
+        yearlySales += amount;
+        yearlyOrders += 1;
+      }
+    });
+
+  return {
+    dailySales,
+    dailyOrders,
+    monthlySales,
+    monthlyOrders,
+    yearlySales,
+    yearlyOrders,
+  };
+}, [orders]);
+
   return (
     <AdminShell>
       <div className="admin-top">
@@ -125,8 +183,75 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="admin-card">
-        <h3>Recent orders</h3>
+</div>
+
+{/* SALES REPORT */}
+
+<div className="admin-card sales-overview-card">
+  <div className="sales-overview-head">
+    <span className="eyebrow">
+      Sales report
+    </span>
+
+    <h3>Sales overview</h3>
+  </div>
+
+  <div className="sales-report-grid">
+    <div className="sales-report-card">
+      <span className="sales-report-label">
+        Today
+      </span>
+
+      <strong>
+        {money(salesReport.dailySales)}
+      </strong>
+
+      <small>
+        {salesReport.dailyOrders}{' '}
+        {salesReport.dailyOrders === 1
+          ? 'order'
+          : 'orders'}
+      </small>
+    </div>
+
+    <div className="sales-report-card">
+      <span className="sales-report-label">
+        This month
+      </span>
+
+      <strong>
+        {money(salesReport.monthlySales)}
+      </strong>
+
+      <small>
+        {salesReport.monthlyOrders}{' '}
+        {salesReport.monthlyOrders === 1
+          ? 'order'
+          : 'orders'}
+      </small>
+    </div>
+
+    <div className="sales-report-card">
+      <span className="sales-report-label">
+        This year
+      </span>
+
+      <strong>
+        {money(salesReport.yearlySales)}
+      </strong>
+
+      <small>
+        {salesReport.yearlyOrders}{' '}
+        {salesReport.yearlyOrders === 1
+          ? 'order'
+          : 'orders'}
+      </small>
+    </div>
+  </div>
+</div>
+
+<div className="admin-card">
+  <h3>Recent orders</h3>
 
         {loading ? (
           <div className="empty-state" style={{ padding: 30 }}>
