@@ -349,9 +349,7 @@ export async function POST(
                   border-bottom:1px solid #ece6db;
                 "
               >
-                ${name}
-                ×
-                ${quantity}
+                ${name} × ${quantity}
               </td>
 
               <td
@@ -390,21 +388,56 @@ export async function POST(
         '',
       );
 
-const {
-  error: emailError,
-} =
-  await resend.emails.send({
-    from: fromEmail,
+    /*
+     * Get admin-editable store email.
+     *
+     * Priority:
+     * 1. Admin Store Email
+     * 2. STORE_REPLY_TO_EMAIL fallback
+     */
+    const {
+      data: storeSettings,
+      error: storeSettingsError,
+    } =
+      await admin
+        .from('store_settings')
+        .select('store_email')
+        .eq('id', 1)
+        .maybeSingle();
 
-    to: customerEmail,
+    if (storeSettingsError) {
+      console.error(
+        'STORE EMAIL LOAD ERROR:',
+        storeSettingsError,
+      );
+    }
 
-    replyTo:
-      process.env.STORE_REPLY_TO_EMAIL,
+    const replyToEmail =
+      String(
+        storeSettings?.store_email ||
+          process.env.STORE_REPLY_TO_EMAIL ||
+          '',
+      ).trim();
 
-    subject:
-      `Order ${order.public_order_id} confirmed | EasyPeasy-Thrift`,
+    const {
+      error: emailError,
+    } =
+      await resend.emails.send({
+        from: fromEmail,
 
-    html: `
+        to: customerEmail,
+
+        ...(replyToEmail
+          ? {
+              replyTo:
+                replyToEmail,
+            }
+          : {}),
+
+        subject:
+          `Order ${order.public_order_id} confirmed | EasyPeasy-Thrift`,
+
+        html: `
 <!DOCTYPE html>
 <html>
 <head>
