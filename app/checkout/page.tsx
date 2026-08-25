@@ -431,14 +431,74 @@ export default function CheckoutPage() {
         );
       }
 
-      if (result.orderId) {
-        order.id = String(
-          result.orderId,
-        );
-      }
+if (result.orderId) {
+  order.id = String(
+    result.orderId,
+  );
+}
 
-      placeLocalOrder(order);
-      setPlaced(order);
+/*
+ * SEND ORDER CONFIRMATION EMAIL
+ *
+ * The order is already successfully
+ * created at this point.
+ *
+ * If the email fails, the customer's
+ * order will still remain successful.
+ */
+try {
+  const emailResponse =
+    await fetch(
+      '/api/customer/order-confirmation',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          orderId: order.id,
+        }),
+      },
+    );
+
+  const emailResult =
+    await emailResponse
+      .json()
+      .catch(() => ({}));
+
+  if (!emailResponse.ok) {
+    console.error(
+      'ORDER CONFIRMATION EMAIL FAILED:',
+      {
+        status:
+          emailResponse.status,
+
+        error:
+          emailResult.error ||
+          'Unknown email error',
+      },
+    );
+  } else {
+    console.log(
+      'ORDER CONFIRMATION EMAIL SENT',
+    );
+  }
+} catch (emailError) {
+  console.error(
+    'ORDER CONFIRMATION EMAIL REQUEST FAILED:',
+    emailError,
+  );
+}
+
+/*
+ * Clear cart and show success page.
+ */
+placeLocalOrder(order);
+
+setPlaced(order);
 
       window.scrollTo({
         top: 0,
