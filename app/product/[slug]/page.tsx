@@ -23,34 +23,27 @@ import ProductGrid from '@/components/product-grid';
 import { ProductImage } from '@/components/product-image';
 import { money } from '@/lib/format';
 
-/*
- * Extract TikTok video ID from a full TikTok URL.
- *
- * Example:
- * https://www.tiktok.com/@username/video/1234567890123456789
- *
- * Returns:
- * 1234567890123456789
- */
-function getTikTokVideoId(
-  url?: string | null,
-) {
-  if (!url) {
-    return null;
-  }
-
-  const match =
-    url.match(/\/video\/(\d+)/);
-
-  return match?.[1] || null;
-}
-
 export default function ProductPage() {
   const router = useRouter();
 
   const [
     showFullDescription,
     setShowFullDescription,
+  ] = useState(false);
+
+  const [
+    tiktokEmbedUrl,
+    setTiktokEmbedUrl,
+  ] = useState<string | null>(null);
+
+  const [
+    tiktokLoading,
+    setTiktokLoading,
+  ] = useState(false);
+
+  const [
+    tiktokError,
+    setTiktokError,
   ] = useState(false);
 
   const { slug } =
@@ -75,6 +68,9 @@ export default function ProductPage() {
         item.slug === slug,
     );
 
+  /*
+   * RECENTLY VIEWED
+   */
   useEffect(() => {
     if (product) {
       recordRecent(
@@ -82,6 +78,98 @@ export default function ProductPage() {
       );
     }
   }, [product?.id]);
+
+  /*
+   * TIKTOK VIDEO
+   *
+   * Supports:
+   * https://vt.tiktok.com/...
+   * https://vm.tiktok.com/...
+   * https://www.tiktok.com/@user/video/...
+   */
+  useEffect(() => {
+    const tiktokUrl =
+      product?.tiktokUrl?.trim();
+
+    if (!tiktokUrl) {
+      setTiktokEmbedUrl(null);
+      setTiktokLoading(false);
+      setTiktokError(false);
+
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadTikTokVideo() {
+      setTiktokLoading(true);
+      setTiktokError(false);
+      setTiktokEmbedUrl(null);
+
+      try {
+        const response =
+          await fetch(
+            '/api/tiktok/resolve',
+            {
+              method: 'POST',
+
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+
+              body: JSON.stringify({
+                url: tiktokUrl,
+              }),
+            },
+          );
+
+        const data =
+          await response.json();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (
+          !response.ok ||
+          !data.embedUrl
+        ) {
+          console.error(
+            'TikTok resolve failed:',
+            data,
+          );
+
+          setTiktokError(true);
+
+          return;
+        }
+
+        setTiktokEmbedUrl(
+          data.embedUrl,
+        );
+      } catch (error) {
+        console.error(
+          'TikTok video error:',
+          error,
+        );
+
+        if (!cancelled) {
+          setTiktokError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setTiktokLoading(false);
+        }
+      }
+    }
+
+    void loadTikTokVideo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.tiktokUrl]);
 
   /*
    * LOADING
@@ -149,19 +237,6 @@ export default function ProductPage() {
       : product.description;
 
   /*
-   * TIKTOK VIDEO
-   */
-  const tiktokVideoId =
-    getTikTokVideoId(
-      product.tiktokUrl,
-    );
-
-  const tiktokEmbedUrl =
-    tiktokVideoId
-      ? `https://www.tiktok.com/player/v1/${tiktokVideoId}?autoplay=0&loop=0`
-      : null;
-
-  /*
    * RELATED PRODUCTS
    */
   const related = products
@@ -200,10 +275,10 @@ export default function ProductPage() {
   /*
    * CHECKOUT NOW
    */
-function handleCheckoutNow() {
-  if (
-    !product ||
-    product.inventory < 1
+  function handleCheckoutNow() {
+    if (
+      !product ||
+      product.inventory < 1
     ) {
       return;
     }
@@ -269,11 +344,8 @@ function handleCheckoutNow() {
           <div
             className="badges"
             style={{
-              position:
-                'static',
-
-              maxWidth:
-                'none',
+              position: 'static',
+              maxWidth: 'none',
             }}
           >
             {product.newArrival && (
@@ -510,6 +582,14 @@ function handleCheckoutNow() {
 
           {/* TIKTOK VIDEO */}
 
+          {product.tiktokUrl &&
+            tiktokLoading && (
+              <div className="notice sage">
+                Loading product
+                video...
+              </div>
+            )}
+
           {tiktokEmbedUrl && (
             <div className="product-video-section">
               <div className="product-video-heading">
@@ -538,10 +618,10 @@ function handleCheckoutNow() {
             </div>
           )}
 
-          {/* INVALID / SHORT TIKTOK URL */}
-
           {product.tiktokUrl &&
-            !tiktokVideoId && (
+            !tiktokLoading &&
+            !tiktokEmbedUrl &&
+            tiktokError && (
               <div className="notice brown">
                 Product video is
                 currently
