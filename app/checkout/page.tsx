@@ -586,13 +586,26 @@ setPlaced(order);
             Order {placed.id}
           </span>
 
-          <h2
+<h2
   style={{
     marginTop: 12,
   }}
 >
   Order placed successfully!
 </h2>
+
+<p
+  style={{
+    marginTop: 10,
+    marginBottom: 18,
+    color: '#36513a',
+    fontWeight: 700,
+    lineHeight: 1.5,
+  }}
+>
+  Please check your email for order confirmation.
+  If you did not receive it, please check your spam or junk folder.
+</p>
 
 {placed.paymentMethod === 'COD' && (
   <p
