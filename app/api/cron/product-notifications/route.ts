@@ -337,22 +337,20 @@ export async function POST(
           : 'View Wishlist';
 
       try {
-        const {
-          error:
-            emailError,
-        } =
-          await resend
-            .emails
-            .send({
-              from:
-                fromEmail,
+const {
+  error: emailError,
+} =
+  await resend.emails.send({
+    from: fromEmail,
 
-              to:
-                item.customer_email,
+    to: item.customer_email,
 
-              subject,
+    replyTo:
+      process.env.STORE_REPLY_TO_EMAIL,
 
-              html: `
+    subject,
+
+    html: `
 <!DOCTYPE html>
 <html>
 <head>
