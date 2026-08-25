@@ -288,18 +288,18 @@ export default function AdminProducts() {
     setPhotoError('');
     setUploadingPhoto(true);
 
-    try {
-      const uploadedUrl = await uploadSelectedPhoto();
+try {
+  const uploadedUrl = await uploadSelectedPhoto();
 
-      const currentImage = oldUnsupportedImage(current?.images[0])
-        ? ''
-        : current?.images[0] || '';
+  const currentImage = oldUnsupportedImage(current?.images[0])
+    ? ''
+    : current?.images[0] || '';
 
-      const image =
-        uploadedUrl ||
-        imageUrl ||
-        currentImage ||
-        'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=1000&q=80';
+  const image =
+    uploadedUrl ||
+    imageUrl ||
+    currentImage ||
+    '/noupload.png';
 
       const draft: Product = {
         id: current?.id || crypto.randomUUID(),
