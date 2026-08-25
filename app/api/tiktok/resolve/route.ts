@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 function getTikTokVideoId(url: string) {
   const match = url.match(/\/video\/(\d+)/);
+
   return match?.[1] || null;
 }
 
@@ -17,8 +18,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.toLowerCase();
+    let parsed: URL;
+
+    try {
+      parsed = new URL(url);
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid TikTok URL.' },
+        { status: 400 },
+      );
+    }
+
+    const hostname =
+      parsed.hostname.toLowerCase();
 
     const allowedHosts = [
       'tiktok.com',
@@ -34,11 +46,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // Full TikTok link already contains the video ID.
-    let videoId = getTikTokVideoId(url);
+    /*
+     * Full TikTok URL:
+     * https://www.tiktok.com/@user/video/123456...
+     */
+    let videoId =
+      getTikTokVideoId(url);
+
     let finalUrl = url;
 
-    // Resolve short vt.tiktok.com / vm.tiktok.com links.
+    /*
+     * Resolve short links:
+     * https://vt.tiktok.com/...
+     * https://vm.tiktok.com/...
+     */
     if (!videoId) {
       const response = await fetch(url, {
         method: 'GET',
@@ -50,14 +71,27 @@ export async function POST(request: Request) {
         },
       });
 
+      if (!response.ok) {
+        return NextResponse.json(
+          {
+            error:
+              'TikTok short link could not be opened.',
+          },
+          { status: 400 },
+        );
+      }
+
       finalUrl = response.url;
-      videoId = getTikTokVideoId(finalUrl);
+
+      videoId =
+        getTikTokVideoId(finalUrl);
     }
 
     if (!videoId) {
       return NextResponse.json(
         {
-          error: 'Could not resolve TikTok video.',
+          error:
+            'Could not resolve TikTok video.',
           finalUrl,
         },
         { status: 400 },
@@ -67,13 +101,20 @@ export async function POST(request: Request) {
     return NextResponse.json({
       videoId,
       finalUrl,
-      embedUrl: `https://www.tiktok.com/player/v1/${videoId}?autoplay=0&loop=0`,
+      embedUrl:
+        `https://www.tiktok.com/player/v1/${videoId}?autoplay=0&loop=0`,
     });
   } catch (error) {
-    console.error('TikTok resolve error:', error);
+    console.error(
+      'TikTok resolve error:',
+      error,
+    );
 
     return NextResponse.json(
-      { error: 'Unable to resolve TikTok video.' },
+      {
+        error:
+          'Unable to resolve TikTok video.',
+      },
       { status: 500 },
     );
   }

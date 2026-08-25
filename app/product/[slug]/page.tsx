@@ -615,17 +615,69 @@ export default function ProductPage() {
                   loading="lazy"
                 />
               </div>
+
+              {/* FALLBACK BUTTON */}
+              {product.tiktokUrl && (
+                <a
+                  href={
+                    product.tiktokUrl
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn ghost"
+                  style={{
+                    marginTop: 12,
+                    width: '100%',
+                    justifyContent:
+                      'center',
+                  }}
+                >
+                  <Play
+                    size={17}
+                    fill="currentColor"
+                  />
+
+                  Watch on TikTok
+                </a>
+              )}
             </div>
           )}
+
+          {/* TIKTOK EMBED FAILED */}
 
           {product.tiktokUrl &&
             !tiktokLoading &&
             !tiktokEmbedUrl &&
             tiktokError && (
-              <div className="notice brown">
-                Product video is
-                currently
-                unavailable.
+              <div className="product-video-section">
+                <div className="notice brown">
+                  TikTok could not
+                  play this video
+                  inside the
+                  website.
+                </div>
+
+                <a
+                  href={
+                    product.tiktokUrl
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn sage"
+                  style={{
+                    marginTop: 10,
+                    width: '100%',
+                    justifyContent:
+                      'center',
+                  }}
+                >
+                  <Play
+                    size={17}
+                    fill="currentColor"
+                  />
+
+                  Watch on TikTok
+                </a>
               </div>
             )}
         </div>
