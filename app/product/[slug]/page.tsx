@@ -606,13 +606,11 @@ export default function ProductPage() {
 
               <div className="tiktok-video-wrap">
                 <iframe
-                  src={
-                    tiktokEmbedUrl
-                  }
-                  title={`${product.name} product video`}
-                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                  allowFullScreen
-                  loading="lazy"
+                src={tiktokEmbedUrl}
+                title={`${product.name} product video`}
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                loading="lazy"
                 />
               </div>
 
