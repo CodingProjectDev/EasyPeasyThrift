@@ -137,6 +137,46 @@ export async function POST(
       createAdminClient();
 
     /*
+     * Get admin-editable store email.
+     *
+     * Priority:
+     * 1. Admin Store Email
+     * 2. STORE_REPLY_TO_EMAIL fallback
+     */
+    const {
+      data: storeSettings,
+      error: storeSettingsError,
+    } =
+      await admin
+        .from(
+          'store_settings',
+        )
+        .select(
+          'store_email',
+        )
+        .eq(
+          'id',
+          1,
+        )
+        .maybeSingle();
+
+    if (storeSettingsError) {
+      console.error(
+        'STORE EMAIL LOAD ERROR:',
+        storeSettingsError,
+      );
+    }
+
+    const replyToEmail =
+      String(
+        storeSettings
+          ?.store_email ||
+          process.env
+            .STORE_REPLY_TO_EMAIL ||
+          '',
+      ).trim();
+
+    /*
      * Find emails whose 10-minute
      * waiting period has finished.
      */
@@ -205,10 +245,7 @@ export async function POST(
       of notifications
     ) {
       /*
-       * Claim the notification.
-       *
-       * This prevents two cron
-       * requests sending the same email.
+       * Claim notification.
        */
       const {
         data: claimed,
@@ -237,8 +274,8 @@ export async function POST(
       }
 
       /*
-       * Check that product still exists
-       * and has stock.
+       * Check product still exists
+       * and has inventory.
        */
       const {
         data:
@@ -337,20 +374,29 @@ export async function POST(
           : 'View Wishlist';
 
       try {
-const {
-  error: emailError,
-} =
-  await resend.emails.send({
-    from: fromEmail,
+        const {
+          error:
+            emailError,
+        } =
+          await resend
+            .emails
+            .send({
+              from:
+                fromEmail,
 
-    to: item.customer_email,
+              to:
+                item.customer_email,
 
-    replyTo:
-      process.env.STORE_REPLY_TO_EMAIL,
+              ...(replyToEmail
+                ? {
+                    replyTo:
+                      replyToEmail,
+                  }
+                : {}),
 
-    subject,
+              subject,
 
-    html: `
+              html: `
 <!DOCTYPE html>
 <html>
 <head>
