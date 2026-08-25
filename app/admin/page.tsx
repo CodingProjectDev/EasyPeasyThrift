@@ -183,7 +183,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-</div>
 
 {/* SALES REPORT */}
 
