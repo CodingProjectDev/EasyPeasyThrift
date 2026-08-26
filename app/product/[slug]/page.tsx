@@ -22,6 +22,8 @@ import {
   X,
 } from 'lucide-react';
 
+import { SiTiktok } from 'react-icons/si';
+
 import { useStore } from '@/components/store-provider';
 import ProductGrid from '@/components/product-grid';
 import { ProductImage } from '@/components/product-image';
@@ -730,12 +732,8 @@ export default function ProductPage() {
                       'center',
                   }}
                 >
-                  <Play
-                    size={17}
-                    fill="currentColor"
-                  />
-
-                  Watch on TikTok
+                  <SiTiktok size={20} />
+                    Watch on TikTok
                 </a>
               )}
             </div>
