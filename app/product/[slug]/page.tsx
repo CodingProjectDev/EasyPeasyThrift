@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -13,9 +14,12 @@ import {
 import Link from 'next/link';
 
 import {
+  ChevronLeft,
+  ChevronRight,
   Heart,
   Play,
   ShoppingBag,
+  X,
 } from 'lucide-react';
 
 import { useStore } from '@/components/store-provider';
@@ -25,6 +29,10 @@ import { money } from '@/lib/format';
 
 export default function ProductPage() {
   const router = useRouter();
+
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const galleryRef = useRef<HTMLDivElement | null>(null);
 
   const [
     showFullDescription,
@@ -67,6 +75,95 @@ export default function ProductPage() {
       (item) =>
         item.slug === slug,
     );
+
+  const productImages =
+    product?.images?.length
+      ? product.images
+      : ['/noupload.png'];
+
+  function openGallery(index: number) {
+    setActiveImageIndex(index);
+    setGalleryOpen(true);
+  }
+
+  function closeGallery() {
+    setGalleryOpen(false);
+  }
+
+  function goToImage(index: number) {
+    const total = productImages.length;
+    if (!total) return;
+
+    const nextIndex = (index + total) % total;
+    setActiveImageIndex(nextIndex);
+
+    const gallery = galleryRef.current;
+    if (!gallery) return;
+
+    gallery.scrollTo({
+      left: gallery.clientWidth * nextIndex,
+      behavior: 'smooth',
+    });
+  }
+
+  function handleGalleryScroll() {
+    const gallery = galleryRef.current;
+    if (!gallery || !gallery.clientWidth) return;
+
+    const nextIndex = Math.round(
+      gallery.scrollLeft / gallery.clientWidth,
+    );
+
+    setActiveImageIndex(
+      Math.max(0, Math.min(nextIndex, productImages.length - 1)),
+    );
+  }
+
+  useEffect(() => {
+    if (!galleryOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const frame = requestAnimationFrame(() => {
+      const gallery = galleryRef.current;
+      if (!gallery) return;
+
+      gallery.scrollTo({
+        left: gallery.clientWidth * activeImageIndex,
+        behavior: 'auto',
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [galleryOpen, activeImageIndex]);
+
+  useEffect(() => {
+    if (!galleryOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setGalleryOpen(false);
+      }
+
+      if (event.key === 'ArrowLeft') {
+        goToImage(activeImageIndex - 1);
+      }
+
+      if (event.key === 'ArrowRight') {
+        goToImage(activeImageIndex + 1);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [galleryOpen, activeImageIndex, productImages.length]);
 
   /*
    * RECENTLY VIEWED
@@ -310,18 +407,29 @@ export default function ProductPage() {
         {/* PRODUCT IMAGES */}
 
         <div className="product-gallery">
-          {product.images.map(
+          {productImages.map(
             (
               image,
               index,
             ) => (
-              <ProductImage
+              <button
                 key={`${image}-${index}`}
-                src={image}
-                alt={`${product.name} view ${
+                type="button"
+                className="product-gallery-button"
+                onClick={() =>
+                  openGallery(index)
+                }
+                aria-label={`Open ${product.name} photo ${
                   index + 1
-                }`}
-              />
+                } of ${productImages.length}`}
+              >
+                <ProductImage
+                  src={image}
+                  alt={`${product.name} view ${
+                    index + 1
+                  }`}
+                />
+              </button>
             ),
           )}
         </div>
@@ -725,6 +833,72 @@ export default function ProductPage() {
             products={recently}
           />
         </section>
+      )}
+
+      {galleryOpen && (
+        <div
+          className="product-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${product.name} photo gallery`}
+        >
+          <button
+            type="button"
+            className="product-lightbox-close"
+            onClick={closeGallery}
+            aria-label="Close photo gallery"
+          >
+            <X size={26} />
+          </button>
+
+          <div
+            ref={galleryRef}
+            className="product-lightbox-track"
+            onScroll={handleGalleryScroll}
+          >
+            {productImages.map((image, index) => (
+              <div
+                className="product-lightbox-slide"
+                key={`${image}-lightbox-${index}`}
+              >
+                <ProductImage
+                  src={image}
+                  alt={`${product.name} photo ${index + 1}`}
+                />
+              </div>
+            ))}
+          </div>
+
+          {productImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                className="product-lightbox-arrow product-lightbox-prev"
+                onClick={() =>
+                  goToImage(activeImageIndex - 1)
+                }
+                aria-label="Previous photo"
+              >
+                <ChevronLeft size={28} />
+              </button>
+
+              <button
+                type="button"
+                className="product-lightbox-arrow product-lightbox-next"
+                onClick={() =>
+                  goToImage(activeImageIndex + 1)
+                }
+                aria-label="Next photo"
+              >
+                <ChevronRight size={28} />
+              </button>
+
+              <div className="product-lightbox-count">
+                {activeImageIndex + 1} / {productImages.length}
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
