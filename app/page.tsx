@@ -1,5 +1,6 @@
 'use client';
 
+import HeroProductSlider from '@/components/hero-product-slider';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { ArrowRight, Leaf, Ruler, Sparkles, Tag } from 'lucide-react';
@@ -53,17 +54,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="hero-media">
-            <img
-  src="/hero-image.jpg"
-  alt="EasyPeasy-Thrift fashion"
-/>
-            <div className="hero-sticker">
-              one-of-one finds
-              <br />
-              before they’re gone ✦
-            </div>
-          </div>
+<div className="hero-media">
+  <HeroProductSlider />
+</div>
         </div>
       </section>
 
