@@ -407,32 +407,24 @@ export default function ProductPage() {
         {/* PRODUCT IMAGES */}
 
         <div className="product-gallery">
-          {productImages.map(
-            (
-              image,
-              index,
-            ) => (
-              <button
-                key={`${image}-${index}`}
-                type="button"
-                className="product-gallery-button"
-                onClick={() =>
-                  openGallery(index)
-                }
-                aria-label={`Open ${product.name} photo ${
-                  index + 1
-                } of ${productImages.length}`}
-              >
-                <ProductImage
-                  src={image}
-                  alt={`${product.name} view ${
-                    index + 1
-                  }`}
-                />
-              </button>
-            ),
-          )}
-        </div>
+  <button
+    type="button"
+    className="product-gallery-button"
+    onClick={() => openGallery(0)}
+    aria-label={`Open ${product.name} photo gallery`}
+  >
+    <ProductImage
+      src={productImages[0]}
+      alt={product.name}
+    />
+
+    {productImages.length > 1 && (
+      <span className="product-photo-count-badge">
+        1 / {productImages.length}
+      </span>
+    )}
+  </button>
+</div>
 
         {/* PRODUCT INFORMATION */}
 
