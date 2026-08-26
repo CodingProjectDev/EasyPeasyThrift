@@ -44,9 +44,9 @@ export default function About() {
 
           <div className="about-brand-story">
             <p>
-              EasyPeasy Thrift was inspired by our child-Ezekiel, and our
-              family&apos;s love of life&apos;s simple joys.
-            </p>
+  EasyPeasy Thrift was inspired by our child—Ezekiel, and our
+  family&apos;s love of life&apos;s simple joys.
+</p>
 
             <p>
               We make thrifting easy, cheerful, and affordable by offering
@@ -100,9 +100,7 @@ export default function About() {
 
         <div className="about-brand-value">
 
-          <span className="about-value-number">
-            01
-          </span>
+        
 
           <div className="about-value-icon">
             <ShoppingBag size={34} />
@@ -121,10 +119,6 @@ export default function About() {
 
         <div className="about-brand-value">
 
-          <span className="about-value-number">
-            02
-          </span>
-
           <div className="about-value-icon">
             <DollarSign size={34} />
           </div>
@@ -141,10 +135,6 @@ export default function About() {
 
 
         <div className="about-brand-value">
-
-          <span className="about-value-number">
-            03
-          </span>
 
           <div className="about-value-icon">
             <Leaf size={34} />

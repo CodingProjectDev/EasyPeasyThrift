@@ -3876,24 +3876,6 @@ textarea:focus-visible{
   border-left:1px solid var(--line);
 }
 
-.about-value-number{
-  width:35px;
-  height:35px;
-
-  margin-bottom:20px;
-
-  border-radius:50%;
-  background:#dce4d2;
-
-  color:#334b31;
-
-  display:grid;
-  place-items:center;
-
-  font-size:.7rem;
-  font-weight:850;
-}
-
 .about-value-icon{
   margin-bottom:10px;
   color:#557347;
