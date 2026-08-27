@@ -6673,3 +6673,27 @@ textarea:focus-visible{
     justify-content:center;
   }
 }
+/* =========================================
+   REUSABLE TYPING EFFECT
+========================================= */
+
+.typing-effect {
+  position: relative;
+}
+
+.typing-placeholder {
+  visibility: hidden;
+}
+
+.typing-live {
+  position: absolute;
+  inset: 0;
+}
+
+.typing-effect.hero-typing-title {
+  margin: 0;
+}
+
+.typing-effect.typing-inline {
+  display: inline-block;
+}

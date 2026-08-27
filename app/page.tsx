@@ -1,5 +1,6 @@
 'use client';
 
+import TypingHeroTitle from '@/components/TypingHeroTitle';
 import HeroProductSlider from '@/components/hero-product-slider';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -39,11 +40,15 @@ export default function HomePage() {
         <div className="hero-grid">
           <div className="hero-copy">
             <span className="eyebrow">Curated thrift · one piece at a time</span>
-            <h1>Wear something nobody else has.</h1>
-            <p>
-              Pre-loved fashion with personality, honest condition notes, and
-              measurements that make secondhand shopping feel easy.
-            </p>
+           <TypingHeroTitle
+  text="Wear something nobody else has."
+  className="hero-typing-title"
+/>
+
+<p>
+  Pre-loved fashion with personality, honest condition notes, and
+  measurements that make secondhand shopping feel easy.
+</p>
             <div className="hero-actions">
               <Link href="/shop" className="btn">
                 Shop the drop <ArrowRight size={17} />

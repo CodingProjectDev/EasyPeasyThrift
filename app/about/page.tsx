@@ -1,5 +1,6 @@
 'use client';
 
+import TypingHeroTitle from '@/components/TypingHeroTitle';
 import {
   DollarSign,
   Globe2,
@@ -44,15 +45,15 @@ export default function About() {
 
           <div className="about-brand-story">
             <p>
-  EasyPeasy Thrift was inspired by our child—Ezekiel, and our
-  family&apos;s love of life&apos;s simple joys.
+  EasyPeasy Thrift was inspired by our child—
+  <TypingHeroTitle
+    text="Ezekiel"
+    speed={120}
+    className="typing-inline"
+    as="span"
+  />
+  , and our family's love of life's simple joys.
 </p>
-
-            <p>
-              We make thrifting easy, cheerful, and affordable by offering
-              unique pre-loved treasures that help families save money,
-              reduce waste, and give wonderful items a fresh start.
-            </p>
           </div>
 
           <div className="about-brand-quote">
