@@ -4964,3 +4964,124 @@ textarea:focus-visible{
     font-size:.46rem;
   }
 }
+/* =========================================
+   PRODUCT SALE / DISCOUNT
+   Append this block to app/globals.css
+========================================= */
+
+.badge.sale{
+  background:#a13d35;
+  color:#fff;
+}
+
+.product-card-price{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:3px;
+  text-align:right;
+}
+
+.product-current-price{
+  color:var(--black);
+  font-size:.95rem;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.product-old-price{
+  color:#77736b;
+  font-size:.76rem;
+  white-space:nowrap;
+}
+
+.product-discount-percent,
+.product-page-discount{
+  color:#a13d35;
+  font-size:.72rem;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.product-page-discount{
+  padding:6px 9px;
+  border-radius:999px;
+  background:#f3d9d5;
+}
+
+.admin-sale-price{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:3px;
+}
+
+.admin-sale-price del{
+  color:#77736b;
+  font-size:.72rem;
+}
+
+.admin-sale-price small{
+  color:#9d3d35;
+  font-size:.68rem;
+  font-weight:900;
+}
+
+.cart-sale-badge{
+  display:inline-flex;
+  margin-top:4px;
+}
+
+.cart-line-price,
+.checkout-line-price{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:3px;
+  text-align:right;
+}
+
+.cart-line-price del,
+.checkout-line-price del{
+  color:#77736b;
+  font-size:.75rem;
+}
+
+.cart-line-price small{
+  color:#9d3d35;
+  font-size:.7rem;
+  font-weight:800;
+}
+
+.summary-saving{
+  color:var(--success);
+}
+
+.cart-savings-notice{
+  margin-top:12px;
+}
+
+@media(max-width:760px){
+  .product-card-price{
+    margin-top:7px;
+    align-items:flex-start;
+    text-align:left;
+  }
+
+  .product-current-price{
+    font-size:.86rem;
+  }
+
+  .product-old-price{
+    font-size:.7rem;
+  }
+
+  .product-discount-percent{
+    font-size:.66rem;
+  }
+
+  .price-row{
+    flex-wrap:wrap;
+  }
+}

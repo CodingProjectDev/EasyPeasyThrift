@@ -136,6 +136,35 @@ export default function CheckoutPage() {
       0,
     );
 
+  /*
+   * Total before automatic
+   * product discounts.
+   */
+  const regularSubtotal =
+    cartProducts.reduce(
+      (sum, item) => {
+        const regularPrice =
+          item.product.compareAt &&
+          item.product.compareAt >
+            item.product.price
+            ? item.product.compareAt
+            : item.product.price;
+
+        return (
+          sum +
+          regularPrice *
+            item.quantity
+        );
+      },
+      0,
+    );
+
+  const productSavings =
+    Math.max(
+      0,
+      regularSubtotal - subtotal,
+    );
+
   // Shipping is intentionally not calculated
   // automatically. Admin provides customer-facing
   // shipping information instead.
@@ -1005,12 +1034,25 @@ setPlaced(order);
                   {quantity}
                 </span>
 
-                <b>
-                  {money(
-                    product.price *
-                      quantity,
-                  )}
-                </b>
+                <div className="checkout-line-price">
+                  <b>
+                    {money(
+                      product.price *
+                        quantity,
+                    )}
+                  </b>
+
+                  {product.compareAt &&
+                    product.compareAt >
+                      product.price && (
+                      <del>
+                        {money(
+                          product.compareAt *
+                            quantity,
+                        )}
+                      </del>
+                    )}
+                </div>
               </div>
             ),
           )}
@@ -1055,9 +1097,37 @@ setPlaced(order);
             )}
           </div>
 
+          {productSavings > 0 && (
+            <>
+              <div className="summary-row">
+                <span>
+                  Regular subtotal
+                </span>
+
+                <b>
+                  {money(
+                    regularSubtotal,
+                  )}
+                </b>
+              </div>
+
+              <div className="summary-row">
+                <span>
+                  Product discounts
+                </span>
+
+                <b className="summary-saving">
+                  −{money(productSavings)}
+                </b>
+              </div>
+            </>
+          )}
+
           <div className="summary-row">
             <span>
-              Subtotal
+              {productSavings > 0
+                ? 'Sale subtotal'
+                : 'Subtotal'}
             </span>
 
             <b>

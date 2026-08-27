@@ -372,6 +372,20 @@ export default function ProductPage() {
     product.inventory <= 0;
 
   /*
+   * PRODUCT DISCOUNT
+   */
+  const discountPercent =
+    product.compareAt &&
+    product.compareAt > product.price
+      ? Math.round(
+          (1 -
+            product.price /
+              product.compareAt) *
+            100,
+        )
+      : null;
+
+  /*
    * CHECKOUT NOW
    */
   function handleCheckoutNow() {
@@ -450,6 +464,12 @@ export default function ProductPage() {
               maxWidth: 'none',
             }}
           >
+            {discountPercent && (
+              <span className="badge sale">
+                {discountPercent}% OFF
+              </span>
+            )}
+
             {product.newArrival && (
               <span className="badge sage">
                 New Arrival
@@ -478,12 +498,20 @@ export default function ProductPage() {
               )}
             </strong>
 
-            {product.compareAt && (
-              <del>
-                {money(
-                  product.compareAt,
-                )}
-              </del>
+            {product.compareAt &&
+              product.compareAt >
+                product.price && (
+                <del>
+                  {money(
+                    product.compareAt,
+                  )}
+                </del>
+              )}
+
+            {discountPercent && (
+              <span className="product-page-discount">
+                -{discountPercent}% OFF
+              </span>
             )}
           </div>
 

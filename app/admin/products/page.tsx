@@ -317,6 +317,29 @@ function slugify(
 }
 
 /* =========================================
+   DISCOUNT HELPERS
+   ========================================= */
+
+function getDiscountPercent(
+  product?: Product | null,
+) {
+  if (
+    !product?.compareAt ||
+    product.compareAt <=
+      product.price
+  ) {
+    return null;
+  }
+
+  return Math.round(
+    (1 -
+      product.price /
+        product.compareAt) *
+      100,
+  );
+}
+
+/* =========================================
    ADMIN PRODUCTS
    ========================================= */
 
@@ -849,6 +872,57 @@ export default function AdminProducts() {
       return;
     }
 
+    const regularPrice =
+      Number(
+        form.get(
+          'price',
+        ),
+      );
+
+    const enteredDiscount =
+      Number(
+        form.get(
+          'discountPercent',
+        ) || 0,
+      );
+
+    const discountPercent =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          Number.isFinite(
+            enteredDiscount,
+          )
+            ? enteredDiscount
+            : 0,
+        ),
+      );
+
+    if (
+      !Number.isFinite(
+        regularPrice,
+      ) ||
+      regularPrice < 0
+    ) {
+      setPhotoError(
+        'Please enter a valid regular price.',
+      );
+
+      return;
+    }
+
+    const salePrice =
+      discountPercent > 0
+        ? Math.round(
+            regularPrice *
+              (1 -
+                discountPercent /
+                  100) *
+              100,
+          ) / 100
+        : regularPrice;
+
     setPhotoError('');
     setUploadingPhoto(
       true,
@@ -907,12 +981,21 @@ export default function AdminProducts() {
 
         name,
 
+        /*
+         * price = actual sale price
+         * the customer pays.
+         */
         price:
-          Number(
-            form.get(
-              'price',
-            ),
-          ),
+          salePrice,
+
+        /*
+         * compareAt = original price.
+         * No discount clears it.
+         */
+        compareAt:
+          discountPercent > 0
+            ? regularPrice
+            : undefined,
 
         category:
           String(
@@ -1260,8 +1343,34 @@ export default function AdminProducts() {
                   </td>
 
                   <td>
-                    {money(
-                      product.price,
+                    {product.compareAt &&
+                    product.compareAt >
+                      product.price ? (
+                      <div className="admin-sale-price">
+                        <b>
+                          {money(
+                            product.price,
+                          )}
+                        </b>
+
+                        <del>
+                          {money(
+                            product.compareAt,
+                          )}
+                        </del>
+
+                        <small>
+                          -
+                          {getDiscountPercent(
+                            product,
+                          )}
+                          % OFF
+                        </small>
+                      </div>
+                    ) : (
+                      money(
+                        product.price,
+                      )
                     )}
                   </td>
 
@@ -1380,11 +1489,11 @@ export default function AdminProducts() {
                 />
               </div>
 
-              {/* PRICE */}
+              {/* REGULAR PRICE */}
 
               <div>
                 <label>
-                  Price
+                  Regular price
                 </label>
 
                 <input
@@ -1393,11 +1502,43 @@ export default function AdminProducts() {
                   step="0.01"
                   min="0"
                   defaultValue={
+                    edit?.compareAt ??
                     edit?.price ??
                     blank.price
                   }
+                  placeholder="e.g. 1899"
                   required
                 />
+
+                <small className="muted">
+                  Original price before discount.
+                </small>
+              </div>
+
+              {/* DISCOUNT */}
+
+              <div>
+                <label>
+                  Discount (%)
+                </label>
+
+                <input
+                  name="discountPercent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  defaultValue={
+                    getDiscountPercent(
+                      edit,
+                    ) ?? ''
+                  }
+                  placeholder="0"
+                />
+
+                <small className="muted">
+                  Example: 32 means 32% OFF. Enter 0 for no discount.
+                </small>
               </div>
 
               {/* BRAND */}
