@@ -366,14 +366,13 @@ textarea:focus-visible{
 
 .hero-product-slider{
   position:relative;
-
   width:100%;
   height:100%;
   min-height:100%;
-
   overflow:hidden;
-
   background:#d8d4c6;
+
+  touch-action:pan-y;
 }
 
 .hero-product-slide{
