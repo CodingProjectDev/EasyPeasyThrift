@@ -2563,76 +2563,141 @@ textarea:focus-visible{
 }
 
 /* =========================================
-   MOVING ANNOUNCEMENT BAR
-   RIGHT -> LEFT
+   ANNOUNCEMENT BAR — SMOOTH INFINITE LOOP
 ========================================= */
 
 .announcement{
-  width:100%;
-  overflow:hidden;
-  background:#171715;
-  color:#ffffff;
-  white-space:nowrap;
   position:relative;
   z-index:1000;
+
+  width:100%;
+  height:42px;
+
+  display:flex;
+  align-items:center;
+
+  overflow:hidden;
+
+  background:#171714;
+  color:#fff;
+
+  white-space:nowrap;
 }
 
 .announcement-track{
   display:flex;
+  align-items:center;
+
   width:max-content;
-  animation:announcement-marquee 22s linear infinite;
+
+  flex-shrink:0;
+
+  animation:announcement-scroll 22s linear infinite;
+
   will-change:transform;
+
+  transform:translate3d(0,0,0);
+  backface-visibility:hidden;
 }
 
 .announcement-group{
+  min-width:100vw;
+
   display:flex;
+  flex-shrink:0;
+
   align-items:center;
   justify-content:space-around;
-  flex-shrink:0;
-  min-width:100vw;
-  gap:80px;
+
+  gap:36px;
+
+  padding:0 28px;
 }
 
 .announcement-item{
-  display:inline-block;
-  padding:7px 40px;
+  display:inline-flex;
+  align-items:center;
+
+  flex-shrink:0;
+
+  padding:0;
+
+  color:#fff;
+
   font-size:14px;
   font-weight:500;
+  line-height:1;
+
   letter-spacing:.02em;
+
+  white-space:nowrap;
 }
 
-@keyframes announcement-marquee{
+.announcement-separator{
+  flex-shrink:0;
+
+  color:#9db097;
+
+  font-size:.7rem;
+
+  opacity:.8;
+}
+
+@keyframes announcement-scroll{
   from{
-    transform:translateX(0);
+    transform:translate3d(0,0,0);
   }
 
   to{
-    transform:translateX(-50%);
+    transform:translate3d(-50%,0,0);
   }
 }
 
-.announcement:hover .announcement-track{
-  animation-play-state:paused;
+@media(hover:hover) and (pointer:fine){
+  .announcement:hover .announcement-track{
+    animation-play-state:paused;
+  }
 }
 
-@media(max-width:768px){
+@media(max-width:760px){
+  .announcement{
+    height:42px;
+  }
 
   .announcement-track{
     animation-duration:18s;
   }
 
   .announcement-group{
-    gap:50px;
+    gap:28px;
+    padding:0 20px;
   }
 
   .announcement-item{
-    padding:6px 25px;
+    font-size:12.5px;
+  }
+
+  .announcement-separator{
+    font-size:.62rem;
+  }
+}
+
+@media(max-width:430px){
+  .announcement-track{
+    animation-duration:16s;
+  }
+
+  .announcement-group{
+    gap:22px;
+    padding:0 16px;
+  }
+
+  .announcement-item{
     font-size:12px;
   }
 }
 
 @media(prefers-reduced-motion:reduce){
-
   .announcement-track{
     animation:none;
   }
