@@ -330,6 +330,34 @@ textarea:focus-visible{
   width:47.5%;
   min-width:0;
   overflow:hidden;
+  isolation:isolate;
+}
+
+/* Soft fade between hero text and product image */
+.hero-media::before{
+  content:"";
+  position:absolute;
+
+  top:0;
+  bottom:0;
+  left:0;
+
+  width:185px;
+
+  z-index:3;
+
+  pointer-events:none;
+
+  background:linear-gradient(
+    to right,
+    rgba(223,229,216,1) 0%,
+    rgba(223,229,216,.96) 12%,
+    rgba(223,229,216,.78) 30%,
+    rgba(223,229,216,.50) 50%,
+    rgba(223,229,216,.22) 72%,
+    rgba(223,229,216,.06) 88%,
+    rgba(223,229,216,0) 100%
+  );
 }
 
 /* =========================================
@@ -338,32 +366,43 @@ textarea:focus-visible{
 
 .hero-product-slider{
   position:relative;
+
   width:100%;
   height:100%;
   min-height:100%;
+
   overflow:hidden;
+
   background:#d8d4c6;
 }
 
 .hero-product-slide{
   position:absolute;
   inset:0;
+
   display:block;
+
   width:100%;
   height:100%;
+
   color:#fff;
+
   overflow:hidden;
 }
 
 .hero-product-slide-image{
   display:block;
+
   width:100% !important;
   height:100% !important;
+
   object-fit:cover !important;
+
   animation:heroProductFade .6s ease;
 }
 
 @keyframes heroProductFade{
+
   from{
     opacity:.35;
     transform:scale(1.015);
@@ -381,6 +420,7 @@ textarea:focus-visible{
 .hero-product-shade{
   position:absolute;
   inset:0;
+
   pointer-events:none;
 
   background:linear-gradient(
@@ -396,8 +436,11 @@ textarea:focus-visible{
 
 .hero-product-top-label{
   position:absolute;
+
   top:24px;
   left:24px;
+
+  z-index:5;
 
   padding:8px 13px;
 
@@ -426,7 +469,7 @@ textarea:focus-visible{
   right:28px;
   bottom:36px;
 
-  z-index:2;
+  z-index:5;
 
   display:flex;
   flex-direction:column;
@@ -464,6 +507,7 @@ textarea:focus-visible{
 
 .hero-product-info strong{
   font-size:1.05rem;
+
   color:#fff;
 }
 
@@ -476,6 +520,7 @@ textarea:focus-visible{
   border-radius:999px;
 
   background:#fff;
+
   color:#171714;
 
   font-size:.72rem;
@@ -491,7 +536,7 @@ textarea:focus-visible{
   right:22px;
   bottom:25px;
 
-  z-index:4;
+  z-index:5;
 
   padding:7px 10px;
 
@@ -569,19 +614,61 @@ textarea:focus-visible{
 
 
 /* =========================================
-   TABLET
+   TABLET / IPAD
 ========================================= */
 
 @media (min-width:761px) and (max-width:1100px){
 
+  .hero-media::before{
+    display:block;
+
+    top:0;
+    bottom:0;
+    left:0;
+    right:auto;
+
+    width:100px;
+
+    z-index:3;
+
+    background:linear-gradient(
+      to right,
+      rgba(223,229,216,.85) 0%,
+      rgba(223,229,216,.68) 22%,
+      rgba(223,229,216,.45) 45%,
+      rgba(223,229,216,.22) 67%,
+      rgba(223,229,216,.07) 84%,
+      rgba(223,229,216,0) 100%
+    );
+  }
+
+  .hero-product-top-label{
+    top:24px;
+    left:92px;
+    z-index:5;
+  }
+
   .hero-product-info{
-    left:20px;
+    left:92px;
     right:20px;
-    bottom:30px;
+    bottom:34px;
+    z-index:5;
   }
 
   .hero-product-info h3{
-    font-size:1.8rem;
+    max-width:100%;
+    font-size:2rem;
+  }
+
+  .hero-product-counter{
+    right:18px;
+    bottom:18px;
+    z-index:5;
+  }
+
+  .hero-product-dots{
+    bottom:20px;
+    z-index:5;
   }
 }
 
@@ -592,6 +679,49 @@ textarea:focus-visible{
 
 @media(max-width:760px){
 
+  .hero-media{
+    position:relative !important;
+
+    top:auto !important;
+    right:auto !important;
+    bottom:auto !important;
+
+    width:100% !important;
+    height:480px;
+
+    overflow:hidden;
+  }
+
+  /*
+   * Mobile:
+   * change the desktop left fade
+   * into a top -> bottom fade
+   */
+  .hero-media::before{
+    display:block;
+
+    top:0;
+    right:0;
+    bottom:auto;
+    left:0;
+
+    width:100%;
+    height:140px;
+
+    z-index:3;
+
+    background:linear-gradient(
+      to bottom,
+      rgba(223,229,216,1) 0%,
+      rgba(223,229,216,.96) 12%,
+      rgba(223,229,216,.78) 30%,
+      rgba(223,229,216,.50) 50%,
+      rgba(223,229,216,.22) 72%,
+      rgba(223,229,216,.06) 88%,
+      rgba(223,229,216,0) 100%
+    );
+  }
+
   .hero-product-slider{
     width:100%;
     height:100%;
@@ -599,8 +729,10 @@ textarea:focus-visible{
   }
 
   .hero-product-top-label{
-    top:16px;
+    top:22px;
     left:16px;
+
+    z-index:5;
 
     padding:7px 11px;
   }
@@ -609,6 +741,8 @@ textarea:focus-visible{
     left:18px;
     right:18px;
     bottom:42px;
+
+    z-index:5;
   }
 
   .hero-product-info h3{
@@ -618,13 +752,16 @@ textarea:focus-visible{
   .hero-product-counter{
     right:16px;
     bottom:16px;
+
+    z-index:5;
   }
 
   .hero-product-dots{
     bottom:19px;
+
+    z-index:5;
   }
 }
-
 
 /* =========================================
    SECTIONS
