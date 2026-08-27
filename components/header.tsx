@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+
 import {
   usePathname,
   useRouter,
@@ -71,6 +72,22 @@ export default function Header() {
   ];
 
   /*
+   * Announcement messages
+   *
+   * Admin format:
+   *
+   * Message 1 | Message 2 | Message 3
+   */
+  const announcementItems =
+    settings.announcementText
+      .split('|')
+      .map(
+        (item) =>
+          item.trim(),
+      )
+      .filter(Boolean);
+
+  /*
    * Check customer login
    */
   useEffect(() => {
@@ -83,7 +100,9 @@ export default function Header() {
       } =
         await supabase.auth.getUser();
 
-      setLoggedIn(!!user);
+      setLoggedIn(
+        !!user,
+      );
     }
 
     void checkUser();
@@ -92,7 +111,10 @@ export default function Header() {
       data: { subscription },
     } =
       supabase.auth.onAuthStateChange(
-        (_event, session) => {
+        (
+          _event,
+          session,
+        ) => {
           setLoggedIn(
             !!session?.user,
           );
@@ -148,11 +170,16 @@ export default function Header() {
     setOpen(false);
 
     if (!loggedIn) {
-      router.push('/login');
+      router.push(
+        '/login',
+      );
+
       return;
     }
 
-    router.push('/account');
+    router.push(
+      '/account',
+    );
   }
 
   /*
@@ -174,10 +201,18 @@ export default function Header() {
       return;
     }
 
-    setLoggedIn(false);
-    setOpen(false);
+    setLoggedIn(
+      false,
+    );
 
-    router.push('/');
+    setOpen(
+      false,
+    );
+
+    router.push(
+      '/',
+    );
+
     router.refresh();
   }
 
@@ -186,7 +221,9 @@ export default function Header() {
    * on admin pages
    */
   if (
-    pathname.startsWith('/admin')
+    pathname.startsWith(
+      '/admin',
+    )
   ) {
     return null;
   }
@@ -197,65 +234,77 @@ export default function Header() {
           ANNOUNCEMENT BAR
       ========================== */}
 
-      {settings.announcementText.trim() && (
-  <div
-    className="announcement"
-    role="region"
-    aria-label="Store announcement"
-  >
-    <div className="announcement-track">
-
-      <div className="announcement-group">
-        <span className="announcement-item">
-          {settings.announcementText}
-        </span>
-
-        <span
-          className="announcement-separator"
-          aria-hidden="true"
+      {announcementItems.length >
+        0 && (
+        <div
+          className="announcement"
+          role="region"
+          aria-label="Store announcement"
         >
-          ✦
-        </span>
+          <div className="announcement-track">
 
-        <span
-          className="announcement-item"
-          aria-hidden="true"
-        >
-          {settings.announcementText}
-        </span>
+            {/* FIRST COPY */}
 
-        <span
-          className="announcement-separator"
-          aria-hidden="true"
-        >
-          ✦
-        </span>
-      </div>
+            <div className="announcement-group">
+              {announcementItems.map(
+                (
+                  item,
+                  index,
+                ) => (
+                  <div
+                    className="announcement-entry"
+                    key={`announcement-first-${index}`}
+                  >
+                    <span className="announcement-item">
+                      {
+                        item
+                      }
+                    </span>
 
-      <div
-        className="announcement-group"
-        aria-hidden="true"
-      >
-        <span className="announcement-item">
-          {settings.announcementText}
-        </span>
+                    <span
+                      className="announcement-separator"
+                      aria-hidden="true"
+                    >
+                      ✦
+                    </span>
+                  </div>
+                ),
+              )}
+            </div>
 
-        <span className="announcement-separator">
-          ✦
-        </span>
+            {/* SECOND IDENTICAL COPY
+                FOR SEAMLESS LOOP */}
 
-        <span className="announcement-item">
-          {settings.announcementText}
-        </span>
+            <div
+              className="announcement-group"
+              aria-hidden="true"
+            >
+              {announcementItems.map(
+                (
+                  item,
+                  index,
+                ) => (
+                  <div
+                    className="announcement-entry"
+                    key={`announcement-second-${index}`}
+                  >
+                    <span className="announcement-item">
+                      {
+                        item
+                      }
+                    </span>
 
-        <span className="announcement-separator">
-          ✦
-        </span>
-      </div>
+                    <span className="announcement-separator">
+                      ✦
+                    </span>
+                  </div>
+                ),
+              )}
+            </div>
 
-    </div>
-  </div>
-)}
+          </div>
+        </div>
+      )}
 
       {/* =========================
           HEADER
@@ -279,8 +328,10 @@ export default function Header() {
               }
               style={{
                 height: 58,
-                width: 'auto',
-                maxWidth: 260,
+                width:
+                  'auto',
+                maxWidth:
+                  260,
                 objectFit:
                   'contain',
               }}
@@ -296,12 +347,23 @@ export default function Header() {
 
         <nav className="desktop-nav">
           {links.map(
-            ([label, href]) => (
+            (
+              [
+                label,
+                href,
+              ],
+            ) => (
               <Link
-                key={label}
-                href={href}
+                key={
+                  label
+                }
+                href={
+                  href
+                }
               >
-                {label}
+                {
+                  label
+                }
               </Link>
             ),
           )}
@@ -319,7 +381,9 @@ export default function Header() {
             href="/shop"
             aria-label="Search"
           >
-            <Search size={20} />
+            <Search
+              size={20}
+            />
           </Link>
 
           {/* WISHLIST */}
@@ -329,7 +393,9 @@ export default function Header() {
             className="count-link"
             aria-label="Wishlist"
           >
-            <Heart size={20} />
+            <Heart
+              size={20}
+            />
 
             {wishlist.length >
               0 && (
@@ -361,17 +427,34 @@ export default function Header() {
                 : 'Login'
             }
             style={{
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              margin: 0,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              color: 'inherit',
+              background:
+                'none',
+
+              border:
+                'none',
+
+              padding:
+                0,
+
+              margin:
+                0,
+
+              cursor:
+                'pointer',
+
+              display:
+                'flex',
+
+              alignItems:
+                'center',
+
+              color:
+                'inherit',
             }}
           >
-            <User size={20} />
+            <User
+              size={20}
+            />
           </button>
 
           {/* CART */}
@@ -385,9 +468,12 @@ export default function Header() {
               size={20}
             />
 
-            {cartCount > 0 && (
+            {cartCount >
+              0 && (
               <b>
-                {cartCount}
+                {
+                  cartCount
+                }
               </b>
             )}
           </Link>
@@ -401,7 +487,10 @@ export default function Header() {
             className="mobile-menu-btn"
             onClick={() =>
               setOpen(
-                (value) => !value,
+                (
+                  value,
+                ) =>
+                  !value,
               )
             }
             aria-label={
@@ -409,7 +498,9 @@ export default function Header() {
                 ? 'Close menu'
                 : 'Open menu'
             }
-            aria-expanded={open}
+            aria-expanded={
+              open
+            }
           >
             {open ? (
               <X />
@@ -430,15 +521,28 @@ export default function Header() {
           {/* MAIN STORE LINKS */}
 
           {links.map(
-            ([label, href]) => (
+            (
+              [
+                label,
+                href,
+              ],
+            ) => (
               <Link
-                key={label}
-                href={href}
+                key={
+                  label
+                }
+                href={
+                  href
+                }
                 onClick={() =>
-                  setOpen(false)
+                  setOpen(
+                    false,
+                  )
                 }
               >
-                {label}
+                {
+                  label
+                }
               </Link>
             ),
           )}
@@ -447,9 +551,12 @@ export default function Header() {
 
           <div
             style={{
-              height: 1,
+              height:
+                1,
+
               background:
                 '#e2ded5',
+
               margin:
                 '4px 0',
             }}
@@ -460,7 +567,9 @@ export default function Header() {
           <Link
             href="/wishlist"
             onClick={() =>
-              setOpen(false)
+              setOpen(
+                false,
+              )
             }
           >
             Wishlist
@@ -477,7 +586,9 @@ export default function Header() {
               <Link
                 href="/account"
                 onClick={() =>
-                  setOpen(false)
+                  setOpen(
+                    false,
+                  )
                 }
               >
                 My Profile
@@ -488,7 +599,9 @@ export default function Header() {
               <Link
                 href="/account/orders"
                 onClick={() =>
-                  setOpen(false)
+                  setOpen(
+                    false,
+                  )
                 }
               >
                 My Orders
@@ -498,9 +611,12 @@ export default function Header() {
 
               <div
                 style={{
-                  height: 1,
+                  height:
+                    1,
+
                   background:
                     '#e2ded5',
+
                   margin:
                     '4px 0',
                 }}
@@ -516,15 +632,22 @@ export default function Header() {
                 style={{
                   background:
                     'none',
+
                   border:
                     'none',
-                  padding: 0,
+
+                  padding:
+                    0,
+
                   textAlign:
                     'left',
+
                   cursor:
                     'pointer',
+
                   font:
                     'inherit',
+
                   color:
                     '#9b4136',
                 }}
@@ -540,7 +663,9 @@ export default function Header() {
             <Link
               href="/login"
               onClick={() =>
-                setOpen(false)
+                setOpen(
+                  false,
+                )
               }
             >
               Login / Sign Up
