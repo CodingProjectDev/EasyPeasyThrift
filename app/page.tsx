@@ -64,12 +64,10 @@ export default function HomePage() {
         <div className="container">
           <div className="section-head">
             <div>
-              <span className="eyebrow">Shop your mood</span>
-              <h2>Find your next favorite.</h2>
+             <span className="eyebrow">EXPLORE THE COLLECTION</span>
+<h2>Shop by Category</h2>
             </div>
-            <Link href="/shop" className="link-arrow">
-              Shop all →
-            </Link>
+            
           </div>
 
           {!ready ? (
