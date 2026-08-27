@@ -30,7 +30,7 @@ export default function HomePage() {
       }
     }
 
-    return Array.from(byCategory.entries()).slice(0, 3);
+    return Array.from(byCategory.entries());
   }, [products]);
 
   return (
