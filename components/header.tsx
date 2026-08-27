@@ -38,46 +38,70 @@ export default function Header() {
     products,
   } = useStore();
 
-  const pathname = usePathname();
-  const router = useRouter();
+  const pathname =
+    usePathname();
 
-  /*
-   * Dynamic category navigation
-   */
-  const categoryLinks = Array.from(
-    new Set(
-      products
-        .map(
-          (product) =>
-            product.category,
-        )
-        .filter(Boolean),
-    ),
-  )
-    .slice(0, 2)
-    .map(
-      (category) =>
-        [
-          category,
-          `/shop?category=${encodeURIComponent(
+  const router =
+    useRouter();
+
+  /* =========================================
+     DYNAMIC CATEGORY NAVIGATION
+  ========================================= */
+
+  const categoryLinks =
+    Array.from(
+      new Set(
+        products
+          .map(
+            (product) =>
+              product.category,
+          )
+          .filter(Boolean),
+      ),
+    )
+      .slice(0, 2)
+      .map(
+        (category) =>
+          [
             category,
-          )}`,
-        ] as const,
-    );
+
+            `/shop?category=${encodeURIComponent(
+              category,
+            )}`,
+          ] as const,
+      );
+
+  /* =========================================
+     MAIN STORE NAVIGATION
+  ========================================= */
 
   const links = [
-    ['Shop', '/shop'] as const,
+    [
+      'Shop',
+      '/shop',
+    ] as const,
+
     ...categoryLinks,
-    ['About', '/about'] as const,
+
+    [
+      'Sell',
+      '/sell',
+    ] as const,
+
+    [
+      'About',
+      '/about',
+    ] as const,
   ];
 
-  /*
-   * Announcement messages
-   *
-   * Admin format:
-   *
-   * Message 1 | Message 2 | Message 3
-   */
+  /* =========================================
+     ANNOUNCEMENT MESSAGES
+
+     Admin format:
+
+     Message 1 | Message 2 | Message 3
+  ========================================= */
+
   const announcementItems =
     settings.announcementText
       .split('|')
@@ -87,16 +111,19 @@ export default function Header() {
       )
       .filter(Boolean);
 
-  /*
-   * Check customer login
-   */
+  /* =========================================
+     CHECK CUSTOMER LOGIN
+  ========================================= */
+
   useEffect(() => {
     const supabase =
       createClient();
 
     async function checkUser() {
       const {
-        data: { user },
+        data: {
+          user,
+        },
       } =
         await supabase.auth.getUser();
 
@@ -108,7 +135,9 @@ export default function Header() {
     void checkUser();
 
     const {
-      data: { subscription },
+      data: {
+        subscription,
+      },
     } =
       supabase.auth.onAuthStateChange(
         (
@@ -126,9 +155,10 @@ export default function Header() {
     };
   }, []);
 
-  /*
-   * Close mobile menu while scrolling
-   */
+  /* =========================================
+     CLOSE MOBILE MENU WHILE SCROLLING
+  ========================================= */
+
   useEffect(() => {
     function handleScroll() {
       setOpen(false);
@@ -150,22 +180,21 @@ export default function Header() {
     };
   }, []);
 
-  /*
-   * Close menu after navigation
-   */
+  /* =========================================
+     CLOSE MOBILE MENU AFTER NAVIGATION
+  ========================================= */
+
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  /*
-   * Account icon
-   *
-   * Logged in:
-   * /account
-   *
-   * Logged out:
-   * /login
-   */
+  /* =========================================
+     ACCOUNT ICON
+
+     Logged in  -> /account
+     Logged out -> /login
+  ========================================= */
+
   function handleAccountClick() {
     setOpen(false);
 
@@ -182,14 +211,17 @@ export default function Header() {
     );
   }
 
-  /*
-   * Logout
-   */
+  /* =========================================
+     LOGOUT
+  ========================================= */
+
   async function handleLogout() {
     const supabase =
       createClient();
 
-    const { error } =
+    const {
+      error,
+    } =
       await supabase.auth.signOut();
 
     if (error) {
@@ -216,10 +248,10 @@ export default function Header() {
     router.refresh();
   }
 
-  /*
-   * Hide customer header
-   * on admin pages
-   */
+  /* =========================================
+     HIDE CUSTOMER HEADER ON ADMIN
+  ========================================= */
+
   if (
     pathname.startsWith(
       '/admin',
@@ -230,9 +262,9 @@ export default function Header() {
 
   return (
     <>
-      {/* =========================
+      {/* =====================================
           ANNOUNCEMENT BAR
-      ========================== */}
+      ====================================== */}
 
       {announcementItems.length >
         0 && (
@@ -256,9 +288,7 @@ export default function Header() {
                     key={`announcement-first-${index}`}
                   >
                     <span className="announcement-item">
-                      {
-                        item
-                      }
+                      {item}
                     </span>
 
                     <span
@@ -289,9 +319,7 @@ export default function Header() {
                     key={`announcement-second-${index}`}
                   >
                     <span className="announcement-item">
-                      {
-                        item
-                      }
+                      {item}
                     </span>
 
                     <span className="announcement-separator">
@@ -306,9 +334,9 @@ export default function Header() {
         </div>
       )}
 
-      {/* =========================
+      {/* =====================================
           HEADER
-      ========================== */}
+      ====================================== */}
 
       <header className="site-header">
 
@@ -327,11 +355,15 @@ export default function Header() {
                 settings.storeName
               }
               style={{
-                height: 58,
+                height:
+                  58,
+
                 width:
                   'auto',
+
                 maxWidth:
                   260,
+
                 objectFit:
                   'contain',
               }}
@@ -341,9 +373,9 @@ export default function Header() {
           )}
         </Link>
 
-        {/* =========================
+        {/* =================================
             DESKTOP NAVIGATION
-        ========================== */}
+        ================================== */}
 
         <nav className="desktop-nav">
           {links.map(
@@ -361,17 +393,15 @@ export default function Header() {
                   href
                 }
               >
-                {
-                  label
-                }
+                {label}
               </Link>
             ),
           )}
         </nav>
 
-        {/* =========================
+        {/* =================================
             HEADER ACTIONS
-        ========================== */}
+        ================================== */}
 
         <div className="header-actions">
 
@@ -407,9 +437,9 @@ export default function Header() {
             )}
           </Link>
 
-          {/* =========================
+          {/* =================================
               ACCOUNT / PROFILE
-          ========================== */}
+          ================================== */}
 
           <button
             type="button"
@@ -478,9 +508,9 @@ export default function Header() {
             )}
           </Link>
 
-          {/* =========================
+          {/* =================================
               MOBILE MENU BUTTON
-          ========================== */}
+          ================================== */}
 
           <button
             type="button"
@@ -511,9 +541,9 @@ export default function Header() {
         </div>
       </header>
 
-      {/* =========================
+      {/* =====================================
           MOBILE NAVIGATION
-      ========================== */}
+      ====================================== */}
 
       {open && (
         <nav className="mobile-nav">
@@ -540,9 +570,7 @@ export default function Header() {
                   )
                 }
               >
-                {
-                  label
-                }
+                {label}
               </Link>
             ),
           )}
@@ -575,9 +603,9 @@ export default function Header() {
             Wishlist
           </Link>
 
-          {/* =========================
+          {/* =================================
               LOGGED IN CUSTOMER
-          ========================== */}
+          ================================== */}
 
           {loggedIn ? (
             <>
@@ -605,6 +633,19 @@ export default function Header() {
                 }
               >
                 My Orders
+              </Link>
+
+              {/* MY SELLING ITEMS */}
+
+              <Link
+                href="/account/selling"
+                onClick={() =>
+                  setOpen(
+                    false,
+                  )
+                }
+              >
+                My Selling Items
               </Link>
 
               {/* DIVIDER */}
@@ -656,9 +697,9 @@ export default function Header() {
               </button>
             </>
           ) : (
-            /* =========================
+            /* =============================
                NOT LOGGED IN
-            ========================== */
+            ============================= */
 
             <Link
               href="/login"

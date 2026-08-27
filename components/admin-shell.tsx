@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   Package,
+  PackageCheck,
   Percent,
   Settings,
   ShoppingCart,
@@ -30,35 +31,39 @@ const nav = [
     '/admin',
     BarChart3,
   ],
-
   [
     'Products',
     '/admin/products',
     Package,
   ],
-
   [
     'Orders',
     '/admin/orders',
     ShoppingCart,
   ],
-
   [
     'Inventory',
     '/admin/inventory',
     Boxes,
   ],
-
   [
     'Customers',
     '/admin/customers',
     Users,
   ],
-
   [
     'Discounts',
     '/admin/discounts',
     Percent,
+  ],
+
+  /*
+   * SELL WITH US REQUESTS
+   */
+  [
+    'Sell Requests',
+    '/admin/sell-requests',
+    PackageCheck,
   ],
 
   [
@@ -95,8 +100,9 @@ export default function AdminShell({
     if (
       href === '/admin'
     ) {
-      return pathname ===
-        '/admin';
+      return (
+        pathname === '/admin'
+      );
     }
 
     return pathname.startsWith(
@@ -135,7 +141,10 @@ export default function AdminShell({
 
   return (
     <div className="admin-main">
-      {/* MOBILE HEADER */}
+
+      {/* =========================
+          MOBILE HEADER
+      ========================== */}
 
       <header className="admin-mobile-header">
         <Link
@@ -166,14 +175,14 @@ export default function AdminShell({
           {mobileMenuOpen ? (
             <X size={22} />
           ) : (
-            <Menu
-              size={23}
-            />
+            <Menu size={23} />
           )}
         </button>
       </header>
 
-      {/* MOBILE OVERLAY */}
+      {/* =========================
+          MOBILE OVERLAY
+      ========================== */}
 
       {mobileMenuOpen && (
         <button
@@ -188,7 +197,9 @@ export default function AdminShell({
         />
       )}
 
-      {/* MOBILE DRAWER */}
+      {/* =========================
+          MOBILE DRAWER
+      ========================== */}
 
       <aside
         className={`admin-mobile-drawer ${
@@ -244,10 +255,13 @@ export default function AdminShell({
         </form>
       </aside>
 
-      {/* DESKTOP LAYOUT */}
+      {/* =========================
+          DESKTOP LAYOUT
+      ========================== */}
 
       <div className="admin-shell">
         <aside className="admin-sidebar">
+
           <div className="admin-brand">
             EasyPeasy—Admin
           </div>
