@@ -6673,3 +6673,222 @@ textarea:focus-visible{
     justify-content:center;
   }
 }
+
+/* =========================================
+   DESKTOP ACCOUNT DROPDOWN
+========================================= */
+
+.desktop-account-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.desktop-account-button {
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.desktop-account-dropdown {
+  position: absolute;
+  top: calc(100% + 20px);
+  right: -24px;
+  z-index: 1500;
+
+  width: 245px;
+  padding: 9px;
+
+  border: 1px solid #dedbd2;
+  border-radius: 16px;
+
+  background: #fffdf8;
+
+  box-shadow:
+    0 20px 50px rgba(30, 28, 24, 0.16);
+
+  animation:
+    desktop-account-menu-in
+    0.16s ease-out;
+}
+
+.desktop-account-dropdown::before {
+  content: "";
+
+  position: absolute;
+  top: -7px;
+  right: 26px;
+
+  width: 13px;
+  height: 13px;
+
+  border-top: 1px solid #dedbd2;
+  border-left: 1px solid #dedbd2;
+
+  background: #fffdf8;
+
+  transform: rotate(45deg);
+}
+
+.desktop-account-dropdown-head {
+  position: relative;
+  z-index: 1;
+
+  padding:
+    10px
+    12px
+    8px;
+
+  color: #6a7564;
+
+  font-size: 11px;
+  font-weight: 900;
+
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.desktop-account-dropdown a {
+  position: relative;
+  z-index: 1;
+
+  width: 100%;
+  min-height: 44px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 11px;
+
+  padding:
+    10px
+    12px;
+
+  border-radius: 10px;
+
+  color: #181814;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.desktop-account-dropdown a:hover {
+  background: #eef1e9;
+  color: #334433;
+}
+
+.desktop-account-dropdown a svg {
+  flex: none;
+}
+
+.desktop-account-count {
+  min-width: 21px;
+  height: 21px;
+
+  margin-left: auto;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding:
+    0
+    6px;
+
+  border-radius: 999px;
+
+  background: #dfe7da;
+  color: #435642;
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.desktop-account-divider {
+  position: relative;
+  z-index: 1;
+
+  height: 1px;
+
+  margin:
+    7px
+    4px;
+
+  background: #dedbd2;
+}
+
+.desktop-account-logout {
+  position: relative;
+  z-index: 1;
+
+  width: 100%;
+  min-height: 42px;
+
+  display: flex;
+  align-items: center;
+
+  padding:
+    10px
+    12px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: transparent;
+
+  color: #9b4136;
+
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.16s ease;
+}
+
+.desktop-account-logout:hover {
+  background: #f6e9e5;
+}
+
+@keyframes desktop-account-menu-in {
+  from {
+    opacity: 0;
+    transform:
+      translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateY(0);
+  }
+}
+
+/* =========================================
+   MOBILE
+   Keep the existing mobile account menu.
+========================================= */
+
+@media (max-width: 760px) {
+  .desktop-account-dropdown {
+    display: none;
+  }
+}

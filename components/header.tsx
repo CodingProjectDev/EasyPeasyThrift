@@ -10,6 +10,7 @@ import {
 import {
   Heart,
   Menu,
+  Package,
   Search,
   ShoppingBag,
   User,
@@ -30,6 +31,11 @@ export default function Header() {
 
   const [loggedIn, setLoggedIn] =
     useState(false);
+
+  const [
+    accountMenuOpen,
+    setAccountMenuOpen,
+  ] = useState(false);
 
   const {
     cartCount,
@@ -147,6 +153,14 @@ export default function Header() {
           setLoggedIn(
             !!session?.user,
           );
+
+          if (
+            !session?.user
+          ) {
+            setAccountMenuOpen(
+              false,
+            );
+          }
         },
       );
 
@@ -156,12 +170,16 @@ export default function Header() {
   }, []);
 
   /* =========================================
-     CLOSE MOBILE MENU WHILE SCROLLING
+     CLOSE MENUS WHILE SCROLLING
   ========================================= */
 
   useEffect(() => {
     function handleScroll() {
       setOpen(false);
+
+      setAccountMenuOpen(
+        false,
+      );
     }
 
     window.addEventListener(
@@ -181,16 +199,84 @@ export default function Header() {
   }, []);
 
   /* =========================================
-     CLOSE MOBILE MENU AFTER NAVIGATION
+     CLOSE MENUS AFTER NAVIGATION
   ========================================= */
 
   useEffect(() => {
     setOpen(false);
+
+    setAccountMenuOpen(
+      false,
+    );
   }, [pathname]);
+
+  /* =========================================
+     CLOSE DESKTOP ACCOUNT MENU
+     WHEN CLICKING OUTSIDE
+  ========================================= */
+
+  useEffect(() => {
+    function handleOutsideClick(
+      event: MouseEvent,
+    ) {
+      const target =
+        event.target as HTMLElement;
+
+      if (
+        !target.closest(
+          '.desktop-account-menu',
+        )
+      ) {
+        setAccountMenuOpen(
+          false,
+        );
+      }
+    }
+
+    function handleEscape(
+      event: KeyboardEvent,
+    ) {
+      if (
+        event.key ===
+        'Escape'
+      ) {
+        setAccountMenuOpen(
+          false,
+        );
+      }
+    }
+
+    document.addEventListener(
+      'mousedown',
+      handleOutsideClick,
+    );
+
+    document.addEventListener(
+      'keydown',
+      handleEscape,
+    );
+
+    return () => {
+      document.removeEventListener(
+        'mousedown',
+        handleOutsideClick,
+      );
+
+      document.removeEventListener(
+        'keydown',
+        handleEscape,
+      );
+    };
+  }, []);
 
   /* =========================================
      ACCOUNT ICON
 
+     DESKTOP:
+     Logged in  -> dropdown menu
+     Logged out -> /login
+
+     MOBILE:
      Logged in  -> /account
      Logged out -> /login
   ========================================= */
@@ -206,8 +292,28 @@ export default function Header() {
       return;
     }
 
-    router.push(
-      '/account',
+    /*
+     * Keep existing mobile behavior:
+     * profile icon goes directly to account.
+     */
+    if (
+      typeof window !==
+        'undefined' &&
+      window.innerWidth <= 760
+    ) {
+      router.push(
+        '/account',
+      );
+
+      return;
+    }
+
+    /*
+     * Desktop opens account dropdown.
+     */
+    setAccountMenuOpen(
+      (current) =>
+        !current,
     );
   }
 
@@ -238,6 +344,10 @@ export default function Header() {
     );
 
     setOpen(
+      false,
+    );
+
+    setAccountMenuOpen(
       false,
     );
 
@@ -439,53 +549,156 @@ export default function Header() {
 
           {/* =================================
               ACCOUNT / PROFILE
+              DESKTOP DROPDOWN
           ================================== */}
 
-          <button
-            type="button"
-            onClick={
-              handleAccountClick
-            }
-            aria-label={
-              loggedIn
-                ? 'My Profile'
-                : 'Login'
-            }
-            title={
-              loggedIn
-                ? 'My Profile'
-                : 'Login'
-            }
-            style={{
-              background:
-                'none',
+          <div className="desktop-account-menu">
 
-              border:
-                'none',
+            <button
+              type="button"
+              className="desktop-account-button"
+              onClick={
+                handleAccountClick
+              }
+              aria-label={
+                loggedIn
+                  ? 'Account menu'
+                  : 'Login'
+              }
+              title={
+                loggedIn
+                  ? 'Account'
+                  : 'Login'
+              }
+              aria-expanded={
+                loggedIn
+                  ? accountMenuOpen
+                  : undefined
+              }
+            >
+              <User
+                size={20}
+              />
+            </button>
 
-              padding:
-                0,
+            {/* DESKTOP ACCOUNT DROPDOWN */}
 
-              margin:
-                0,
+            {loggedIn &&
+              accountMenuOpen && (
+              <div className="desktop-account-dropdown">
 
-              cursor:
-                'pointer',
+                {/* DROPDOWN HEADING */}
 
-              display:
-                'flex',
+                <div className="desktop-account-dropdown-head">
+                  <span>
+                    My Account
+                  </span>
+                </div>
 
-              alignItems:
-                'center',
+                {/* MY PROFILE */}
 
-              color:
-                'inherit',
-            }}
-          >
-            <User
-              size={20}
-            />
-          </button>
+                <Link
+                  href="/account"
+                  onClick={() =>
+                    setAccountMenuOpen(
+                      false,
+                    )
+                  }
+                >
+                  <User
+                    size={17}
+                  />
+
+                  <span>
+                    My Profile
+                  </span>
+                </Link>
+
+                {/* MY ORDERS */}
+
+                <Link
+                  href="/account/orders"
+                  onClick={() =>
+                    setAccountMenuOpen(
+                      false,
+                    )
+                  }
+                >
+                  <ShoppingBag
+                    size={17}
+                  />
+
+                  <span>
+                    My Orders
+                  </span>
+                </Link>
+
+                {/* MY SELLING ITEMS */}
+
+                <Link
+                  href="/account/selling"
+                  onClick={() =>
+                    setAccountMenuOpen(
+                      false,
+                    )
+                  }
+                >
+                  <Package
+                    size={17}
+                  />
+
+                  <span>
+                    My Selling Items
+                  </span>
+                </Link>
+
+                {/* WISHLIST */}
+
+                <Link
+                  href="/wishlist"
+                  onClick={() =>
+                    setAccountMenuOpen(
+                      false,
+                    )
+                  }
+                >
+                  <Heart
+                    size={17}
+                  />
+
+                  <span>
+                    Wishlist
+                  </span>
+
+                  {wishlist.length >
+                    0 && (
+                    <span className="desktop-account-count">
+                      {
+                        wishlist.length
+                      }
+                    </span>
+                  )}
+                </Link>
+
+                {/* DIVIDER */}
+
+                <div className="desktop-account-divider" />
+
+                {/* LOGOUT */}
+
+                <button
+                  type="button"
+                  className="desktop-account-logout"
+                  onClick={
+                    handleLogout
+                  }
+                >
+                  Logout
+                </button>
+
+              </div>
+            )}
+          </div>
 
           {/* CART */}
 
@@ -515,14 +728,18 @@ export default function Header() {
           <button
             type="button"
             className="mobile-menu-btn"
-            onClick={() =>
+            onClick={() => {
+              setAccountMenuOpen(
+                false,
+              );
+
               setOpen(
                 (
                   value,
                 ) =>
                   !value,
-              )
-            }
+              );
+            }}
             aria-label={
               open
                 ? 'Close menu'
