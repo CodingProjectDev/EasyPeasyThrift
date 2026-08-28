@@ -1,10 +1,50 @@
-node_modules
-.next
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Build output
+dist/
+build/
+
+# Environment variables / secrets
 .env
-.env.local
-.vercel
-.DS_Store
+.env.*
+!.env.example
+
+# Vercel
+.vercel/
+
+# Logs
+*.log
 npm-debug.log*
-.env.local
-.env.local
-.env*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+
+# macOS
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Private keys / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
