@@ -39,22 +39,18 @@ export default function HomePage() {
       <section className="hero">
         <div className="hero-grid">
           <div className="hero-copy">
-            <span className="eyebrow">Curated thrift · one piece at a time</span>
+            <span className="eyebrow">CURATED FINDS · NEW & PRE-LOVED</span>
            <TypingHeroTitle
-  text="Wear something nobody else has."
+  text="Discover something new or pre-loved."
   className="hero-typing-title"
 />
 
 <p>
-  Pre-loved fashion with personality, honest condition notes, and
-  measurements that make secondhand shopping feel easy.
+  Your one-stop destination to shop new and pre-loved fashion, find standout pieces, and sell your own items easily.
 </p>
             <div className="hero-actions">
               <Link href="/shop" className="btn">
                 Shop the drop <ArrowRight size={17} />
-              </Link>
-              <Link href="/about" className="btn secondary">
-                About us
               </Link>
             </div>
           </div>

@@ -6909,7 +6909,8 @@ textarea:focus-visible{
 }
 
 .typing-effect.hero-typing-title {
-  margin: 0;
+  margin: 0 0 28px;
+  line-height: 0.9;
 }
 
 .typing-effect.typing-inline {
