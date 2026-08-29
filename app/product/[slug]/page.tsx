@@ -62,15 +62,14 @@ export default function ProductPage() {
     }>();
 
   const {
-    products,
-    cart,
-    wishlist,
-    toggleWishlist,
-    addToCart,
-    recordRecent,
-    recent,
-    ready,
-  } = useStore();
+  products,
+  wishlist,
+  toggleWishlist,
+  addToCart,
+  recordRecent,
+  recent,
+  ready,
+} = useStore();
 
   const product =
     products.find(
@@ -389,33 +388,19 @@ export default function ProductPage() {
    * CHECKOUT NOW
    */
   function handleCheckoutNow() {
-    if (
-      !product ||
-      product.inventory < 1
-    ) {
-      return;
-    }
-
-    const productId =
-      product.id;
-
-    const alreadyInCart =
-      cart.some(
-        (item) =>
-          item.productId ===
-          productId,
-      );
-
-    if (!alreadyInCart) {
-      addToCart(
-        productId,
-      );
-    }
-
-    router.push(
-      '/checkout',
-    );
+  if (
+    !product ||
+    product.inventory < 1
+  ) {
+    return;
   }
+
+  router.push(
+    `/checkout?buyNow=${encodeURIComponent(
+      product.id,
+    )}`,
+  );
+}
 
   return (
     <div className="container">

@@ -2151,42 +2151,62 @@ if (
   ========================================= */
 
   async function handleAction(
-    action: ChatAction,
+  action: ChatAction,
+) {
+  if (
+    action.whatsapp
   ) {
-    if (
-      action.whatsapp
-    ) {
-      openWhatsApp();
-      return;
-    }
-
-    if (
-      action.logout
-    ) {
-      await logout();
-      return;
-    }
-
-    if (
-      action.message
-    ) {
-      sendMessage(
-        action.message,
-      );
-
-      return;
-    }
-
-    if (
-      action.path
-    ) {
-      setOpen(false);
-
-      router.push(
-        action.path,
-      );
-    }
+    openWhatsApp();
+    return;
   }
+
+  if (
+    action.logout
+  ) {
+    await logout();
+    return;
+  }
+
+  if (
+    action.message
+  ) {
+    sendMessage(
+      action.message,
+    );
+
+    return;
+  }
+
+  if (
+    action.path
+  ) {
+    setOpen(false);
+
+    /*
+     * Customer account pages require login.
+     * Remember the page they wanted so we can
+     * send them there after successful login.
+     */
+    if (
+      action.path.startsWith(
+        '/account',
+      ) &&
+      !loggedIn
+    ) {
+      router.push(
+        `/login?next=${encodeURIComponent(
+          action.path,
+        )}`,
+      );
+
+      return;
+    }
+
+    router.push(
+      action.path,
+    );
+  }
+}
 
   /* =========================================
      SEND MESSAGE

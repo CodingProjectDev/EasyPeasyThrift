@@ -1,8 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState,
+} from 'react';
+
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+
+import {
+  useRouter,
+} from 'next/navigation';
+
 import {
   Heart,
   LogOut,
@@ -10,7 +18,9 @@ import {
   User,
 } from 'lucide-react';
 
-import { createClient } from '@/lib/supabase/client';
+import {
+  createClient,
+} from '@/lib/supabase/client';
 
 type ProfileInfo = {
   name: string;
@@ -19,63 +29,116 @@ type ProfileInfo = {
 };
 
 export default function AccountPage() {
-  const router = useRouter();
+  const router =
+    useRouter();
 
-  const [profile, setProfile] =
+  const [
+    profile,
+    setProfile,
+  ] =
     useState<ProfileInfo>({
       name: '',
       email: '',
       phone: '',
     });
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true);
 
+  /* =========================================
+     LOGOUT
+  ========================================= */
+
   async function logout() {
-    const supabase = createClient();
+    const supabase =
+      createClient();
 
     await supabase.auth.signOut();
 
-    router.replace('/login');
+    router.replace(
+      '/login',
+    );
+
     router.refresh();
   }
 
+  /* =========================================
+     LOAD PROFILE
+  ========================================= */
+
   useEffect(() => {
     async function loadProfile() {
-      const supabase = createClient();
+      const supabase =
+        createClient();
 
       const {
-        data: { user },
+        data: {
+          user,
+        },
         error,
-      } = await supabase.auth.getUser();
+      } =
+        await supabase.auth.getUser();
 
-      if (error || !user) {
-        router.replace('/login');
+      /*
+       * Not logged in:
+       * remember that the customer
+       * wanted the profile page.
+       */
+      if (
+        error ||
+        !user
+      ) {
+        router.replace(
+          `/login?next=${encodeURIComponent(
+            '/account',
+          )}`,
+        );
+
         return;
       }
 
       let name =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
+        user.user_metadata
+          ?.full_name ||
+        user.user_metadata
+          ?.name ||
         '';
 
       let phone =
         user.phone ||
-        user.user_metadata?.phone ||
+        user.user_metadata
+          ?.phone ||
         '';
 
       /*
        * Try to get the customer's latest
        * saved checkout information.
        */
-      const { data: latestOrder } =
+      const {
+        data:
+          latestOrder,
+      } =
         await supabase
-          .from('orders')
-          .select('full_name, phone')
-          .eq('customer_id', user.id)
-          .order('created_at', {
-            ascending: false,
-          })
+          .from(
+            'orders',
+          )
+          .select(
+            'full_name, phone',
+          )
+          .eq(
+            'customer_id',
+            user.id,
+          )
+          .order(
+            'created_at',
+            {
+              ascending:
+                false,
+            },
+          )
           .limit(1)
           .maybeSingle();
 
@@ -83,40 +146,61 @@ export default function AccountPage() {
         name =
           name ||
           String(
-            latestOrder.full_name || '',
+            latestOrder.full_name ||
+              '',
           );
 
         phone =
           phone ||
           String(
-            latestOrder.phone || '',
+            latestOrder.phone ||
+              '',
           );
       }
 
       setProfile({
-        name: name || 'Not provided',
+        name:
+          name ||
+          'Not provided',
+
         email:
           user.email ||
           'Not provided',
+
         phone:
-          phone || 'Not provided',
+          phone ||
+          'Not provided',
       });
 
-      setLoading(false);
+      setLoading(
+        false,
+      );
     }
 
     void loadProfile();
-  }, [router]);
+  }, [
+    router,
+  ]);
+
+  /* =========================================
+     LOADING
+  ========================================= */
 
   if (loading) {
     return (
       <div className="container content-page">
         <div className="empty-state">
-          <h3>Loading profile…</h3>
+          <h3>
+            Loading profile…
+          </h3>
         </div>
       </div>
     );
   }
+
+  /* =========================================
+     PAGE
+  ========================================= */
 
   return (
     <div className="container">
@@ -125,42 +209,72 @@ export default function AccountPage() {
           Your account
         </span>
 
-        <h1>My Profile.</h1>
+        <h1>
+          My Profile.
+        </h1>
       </div>
 
       <div
         style={{
-          maxWidth: 760,
-          marginBottom: 70,
+          maxWidth:
+            760,
+
+          marginBottom:
+            70,
         }}
       >
+        {/* PROFILE */}
+
         <div className="panel">
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              marginBottom: 22,
+              display:
+                'flex',
+
+              alignItems:
+                'center',
+
+              gap:
+                12,
+
+              marginBottom:
+                22,
             }}
           >
             <div
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: '50%',
-                background: '#dfe9dd',
-                display: 'grid',
-                placeItems: 'center',
+                width:
+                  46,
+
+                height:
+                  46,
+
+                borderRadius:
+                  '50%',
+
+                background:
+                  '#dfe9dd',
+
+                display:
+                  'grid',
+
+                placeItems:
+                  'center',
               }}
             >
-              <User size={22} />
+              <User
+                size={22}
+              />
             </div>
 
             <div>
               <h3
                 style={{
-                  fontFamily: 'inherit',
-                  marginBottom: 3,
+                  fontFamily:
+                    'inherit',
+
+                  marginBottom:
+                    3,
                 }}
               >
                 Account information
@@ -173,31 +287,58 @@ export default function AccountPage() {
           </div>
 
           <div className="summary-row">
-            <span>Name</span>
-            <b>{profile.name}</b>
+            <span>
+              Name
+            </span>
+
+            <b>
+              {
+                profile.name
+              }
+            </b>
           </div>
 
           <div className="summary-row">
-            <span>Email</span>
-            <b>{profile.email}</b>
+            <span>
+              Email
+            </span>
+
+            <b>
+              {
+                profile.email
+              }
+            </b>
           </div>
 
           <div className="summary-row">
-            <span>Phone</span>
-            <b>{profile.phone}</b>
+            <span>
+              Phone
+            </span>
+
+            <b>
+              {
+                profile.phone
+              }
+            </b>
           </div>
         </div>
+
+        {/* QUICK LINKS */}
 
         <div
           className="panel"
           style={{
-            marginTop: 18,
+            marginTop:
+              18,
           }}
         >
           <h3
             style={{
-              fontFamily: 'inherit',
-              marginBottom: 18,
+              fontFamily:
+                'inherit',
+
+              marginBottom:
+                18,
             }}
           >
             Quick links
@@ -207,59 +348,99 @@ export default function AccountPage() {
             href="/account/orders"
             className="summary-row"
             style={{
-              alignItems: 'center',
-              padding: '14px 0',
+              alignItems:
+                'center',
+
+              padding:
+                '14px 0',
             }}
           >
             <span
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                fontWeight: 700,
+                display:
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                gap:
+                  10,
+
+                fontWeight:
+                  700,
               }}
             >
-              <Package size={19} />
+              <Package
+                size={19}
+              />
+
               My Orders
             </span>
 
-            <span>→</span>
+            <span>
+              →
+            </span>
           </Link>
 
           <Link
             href="/wishlist"
             className="summary-row"
             style={{
-              alignItems: 'center',
-              padding: '14px 0',
+              alignItems:
+                'center',
+
+              padding:
+                '14px 0',
             }}
           >
             <span
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                fontWeight: 700,
+                display:
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                gap:
+                  10,
+
+                fontWeight:
+                  700,
               }}
             >
-              <Heart size={19} />
+              <Heart
+                size={19}
+              />
+
               Wishlist
             </span>
 
-            <span>→</span>
+            <span>
+              →
+            </span>
           </Link>
         </div>
+
+        {/* LOGOUT */}
 
         <button
           type="button"
           className="btn danger"
-          onClick={logout}
+          onClick={
+            logout
+          }
           style={{
-            marginTop: 18,
-            width: '100%',
+            marginTop:
+              18,
+
+            width:
+              '100%',
           }}
         >
-          <LogOut size={18} />
+          <LogOut
+            size={18}
+          />
+
           Logout
         </button>
       </div>
