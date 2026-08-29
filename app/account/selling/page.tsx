@@ -121,9 +121,14 @@ function formatDate(
   return new Intl.DateTimeFormat(
     'en-US',
     {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+      month:
+        'short',
+
+      day:
+        'numeric',
+
+      year:
+        'numeric',
     },
   ).format(
     new Date(value),
@@ -164,6 +169,10 @@ export default function MySellingPage() {
     setError,
   ] =
     useState('');
+
+  /* =========================================
+     LOAD SELLING ITEMS
+  ========================================= */
 
   useEffect(() => {
     const supabase =
@@ -270,6 +279,10 @@ export default function MySellingPage() {
     };
   }, []);
 
+  /* =========================================
+     LOADING
+  ========================================= */
+
   if (loading) {
     return (
       <div className="container content-page">
@@ -285,6 +298,10 @@ export default function MySellingPage() {
       </div>
     );
   }
+
+  /* =========================================
+     LOGIN REQUIRED
+  ========================================= */
 
   if (!loggedIn) {
     return (
@@ -303,7 +320,9 @@ export default function MySellingPage() {
           </p>
 
           <Link
-            href="/login"
+            href={`/login?next=${encodeURIComponent(
+              '/account/selling',
+            )}`}
             className="btn sage"
           >
             Login / Sign Up
@@ -312,6 +331,10 @@ export default function MySellingPage() {
       </div>
     );
   }
+
+  /* =========================================
+     PAGE
+  ========================================= */
 
   return (
     <div className="container">
@@ -473,8 +496,6 @@ export default function MySellingPage() {
                         </div>
                       </div>
                     ) : (
-                      /* STATUS PROGRESS */
-
                       <div className="selling-progress">
                         {STATUS_STEPS.map(
                           (
@@ -622,9 +643,12 @@ export default function MySellingPage() {
                       </div>
                     )}
 
+                    {/* FOOTER */}
+
                     <div className="selling-card-footer">
                       <span>
                         Handoff:{' '}
+
                         <b>
                           {submission.delivery_method ||
                             'Not selected'}
@@ -633,6 +657,7 @@ export default function MySellingPage() {
 
                       <span>
                         Reference:{' '}
+
                         <b>
                           {submission.id.slice(
                             0,

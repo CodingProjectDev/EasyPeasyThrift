@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import Link from 'next/link';
+
 import {
   Check,
   QrCode,
@@ -33,6 +34,7 @@ import {
 
 export default function CheckoutPage() {
   const {
+    products,
     cartProducts,
     placeLocalOrder,
     promos,
@@ -40,59 +42,160 @@ export default function CheckoutPage() {
     ready,
   } = useStore();
 
-  const [method, setMethod] =
-    useState<PaymentMethod>('COD');
+  const [
+    method,
+    setMethod,
+  ] =
+    useState<PaymentMethod>(
+      'COD',
+    );
 
-  const [proof, setProof] =
-    useState<File | null>(null);
+  const [
+    proof,
+    setProof,
+  ] =
+    useState<File | null>(
+      null,
+    );
 
-  const [proofPreview, setProofPreview] =
+  const [
+    proofPreview,
+    setProofPreview,
+  ] =
     useState('');
 
-  const [txid, setTxid] =
+  const [
+    txid,
+    setTxid,
+  ] =
     useState('');
 
-  const [promo, setPromo] =
+  const [
+    promo,
+    setPromo,
+  ] =
     useState('');
 
-  const [placed, setPlaced] =
-    useState<Order | null>(null);
+  const [
+    placed,
+    setPlaced,
+  ] =
+    useState<Order | null>(
+      null,
+    );
 
-  const [busy, setBusy] =
+  const [
+    busy,
+    setBusy,
+  ] =
     useState(false);
 
-  const [userId, setUserId] =
-    useState<string | null>(null);
+  const [
+    userId,
+    setUserId,
+  ] =
+    useState<
+      string | null
+    >(null);
 
-  const [userEmail, setUserEmail] =
+  const [
+    userEmail,
+    setUserEmail,
+  ] =
     useState('');
 
-  const [authChecked, setAuthChecked] =
+  const [
+    authChecked,
+    setAuthChecked,
+  ] =
     useState(false);
+
+  /*
+   * Checkout Now product ID.
+   *
+   * Example:
+   *
+   * /checkout?buyNow=PRODUCT_ID
+   */
+  const [
+    buyNowProductId,
+    setBuyNowProductId,
+  ] =
+    useState('');
+
+  const [
+    checkoutIntentReady,
+    setCheckoutIntentReady,
+  ] =
+    useState(false);
+
+  /* =========================================
+     READ CHECKOUT INTENT
+  ========================================= */
 
   useEffect(() => {
-    const supabase = createClient();
+    const params =
+      new URLSearchParams(
+        window.location.search,
+      );
+
+    const buyNow =
+      params.get(
+        'buyNow',
+      );
+
+    setBuyNowProductId(
+      buyNow || '',
+    );
+
+    setCheckoutIntentReady(
+      true,
+    );
+  }, []);
+
+  /* =========================================
+     CUSTOMER AUTH
+  ========================================= */
+
+  useEffect(() => {
+    const supabase =
+      createClient();
 
     async function loadUser() {
       const {
-        data: { user },
+        data: {
+          user,
+        },
       } =
         await supabase.auth.getUser();
 
-      setUserId(user?.id || null);
-      setUserEmail(
-        user?.email || '',
+      setUserId(
+        user?.id ||
+          null,
       );
-      setAuthChecked(true);
+
+      setUserEmail(
+        user?.email ||
+          '',
+      );
+
+      setAuthChecked(
+        true,
+      );
     }
 
     void loadUser();
 
     const {
-      data: { subscription },
+      data: {
+        subscription,
+      },
     } =
       supabase.auth.onAuthStateChange(
-        (_event, session) => {
+        (
+          _event,
+          session,
+        ) => {
           setUserId(
             session?.user?.id ||
               null,
@@ -102,6 +205,10 @@ export default function CheckoutPage() {
             session?.user?.email ||
               '',
           );
+
+          setAuthChecked(
+            true,
+          );
         },
       );
 
@@ -110,45 +217,120 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  /* =========================================
+     PAYMENT DEFAULT
+  ========================================= */
+
   useEffect(() => {
     if (
       !settings.codEnabled &&
       settings.qrEnabled
     ) {
-      setMethod('QR');
+      setMethod(
+        'QR',
+      );
     } else if (
       settings.codEnabled &&
       !settings.qrEnabled
     ) {
-      setMethod('COD');
+      setMethod(
+        'COD',
+      );
     }
   }, [
     settings.codEnabled,
     settings.qrEnabled,
   ]);
 
+  /* =========================================
+     BUY NOW PRODUCT
+  ========================================= */
+
+  const buyNowProduct =
+    buyNowProductId
+      ? products.find(
+          (product) =>
+            product.id ===
+            buyNowProductId,
+        )
+      : undefined;
+
+  const isBuyNow =
+    Boolean(
+      buyNowProductId,
+    );
+
+  /*
+   * Checkout Now:
+   * use ONLY the selected product.
+   *
+   * Normal checkout:
+   * use all cart products.
+   */
+  const checkoutProducts =
+    isBuyNow
+      ? buyNowProduct &&
+        buyNowProduct.inventory >
+          0
+        ? [
+            {
+              product:
+                buyNowProduct,
+              quantity:
+                1,
+            },
+          ]
+        : []
+      : cartProducts;
+
+  /*
+   * Preserve Buy Now through login.
+   */
+  const checkoutPath =
+    isBuyNow
+      ? `/checkout?buyNow=${encodeURIComponent(
+          buyNowProductId,
+        )}`
+      : '/checkout';
+
+  const loginPath =
+    `/login?next=${encodeURIComponent(
+      checkoutPath,
+    )}`;
+
+  /* =========================================
+     TOTALS
+  ========================================= */
+
   const subtotal =
-    cartProducts.reduce(
-      (sum, item) =>
+    checkoutProducts.reduce(
+      (
+        sum,
+        item,
+      ) =>
         sum +
         item.product.price *
           item.quantity,
       0,
     );
 
-  /*
-   * Total before automatic
-   * product discounts.
-   */
   const regularSubtotal =
-    cartProducts.reduce(
-      (sum, item) => {
+    checkoutProducts.reduce(
+      (
+        sum,
+        item,
+      ) => {
         const regularPrice =
-          item.product.compareAt &&
-          item.product.compareAt >
-            item.product.price
-            ? item.product.compareAt
-            : item.product.price;
+          item.product
+            .compareAt &&
+          item.product
+            .compareAt >
+            item.product
+              .price
+            ? item.product
+                .compareAt
+            : item.product
+                .price;
 
         return (
           sum +
@@ -162,13 +344,17 @@ export default function CheckoutPage() {
   const productSavings =
     Math.max(
       0,
-      regularSubtotal - subtotal,
+      regularSubtotal -
+        subtotal,
     );
 
-  // Shipping is intentionally not calculated
-  // automatically. Admin provides customer-facing
-  // shipping information instead.
-  const shipping = 0;
+  /*
+   * Shipping is confirmed
+   * separately based on
+   * product and location.
+   */
+  const shipping =
+    0;
 
   const validPromo =
     useMemo(() => {
@@ -181,9 +367,13 @@ export default function CheckoutPage() {
               .toLowerCase() &&
           new Date(
             item.expiresAt,
-          ) >= new Date(),
+          ) >=
+            new Date(),
       );
-    }, [promo, promos]);
+    }, [
+      promo,
+      promos,
+    ]);
 
   const discount =
     validPromo
@@ -198,76 +388,116 @@ export default function CheckoutPage() {
           )
       : 0;
 
-  // Product total only. Shipping is confirmed
-  // separately based on product/location.
-  const total = Math.max(
-    0,
-    subtotal - discount,
-  );
+  const total =
+    Math.max(
+      0,
+      subtotal -
+        discount,
+    );
+
+  /* =========================================
+     PAYMENT PROOF
+  ========================================= */
 
   function handleProof(
     file?: File,
   ) {
     if (!file) {
-      setProof(null);
-      setProofPreview('');
+      setProof(
+        null,
+      );
+
+      setProofPreview(
+        '',
+      );
+
       return;
     }
 
-    setProof(file);
+    setProof(
+      file,
+    );
 
     const reader =
       new FileReader();
 
-    reader.onload = () => {
-      setProofPreview(
-        String(reader.result),
-      );
-    };
+    reader.onload =
+      () => {
+        setProofPreview(
+          String(
+            reader.result,
+          ),
+        );
+      };
 
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(
+      file,
+    );
   }
 
+  /* =========================================
+     PLACE ORDER
+  ========================================= */
+
   async function submit(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    // Read the form before any await.
     const form =
       new FormData(
         event.currentTarget,
       );
 
-    if (!cartProducts.length) {
+    if (
+      !checkoutProducts.length
+    ) {
       alert(
-        'Your cart is empty.',
+        'There are no products available for checkout.',
       );
+
       return;
     }
 
     if (
       method === 'QR' &&
-      (!proof || !txid.trim())
+      (
+        !proof ||
+        !txid.trim()
+      )
     ) {
       alert(
         'For QR Payment, upload payment proof and enter the transaction/reference ID.',
       );
+
       return;
     }
 
-    setBusy(true);
+    setBusy(
+      true,
+    );
 
     try {
       const supabase =
         createClient();
 
       const {
-        data: { session },
-        error: sessionError,
+        data: {
+          session,
+        },
+        error:
+          sessionError,
       } =
         await supabase.auth.getSession();
 
+      /*
+       * Session expired.
+       *
+       * Keep the exact checkout
+       * destination, including
+       * the Buy Now product ID.
+       */
       if (
         sessionError ||
         !session ||
@@ -278,32 +508,59 @@ export default function CheckoutPage() {
         );
 
         window.location.href =
-          '/login';
+          loginPath;
 
         return;
       }
 
       const customer = {
-        name: String(
-          form.get('name') || '',
-        ).trim(),
-        email: String(
-          form.get('email') || '',
-        ).trim(),
-        phone: String(
-          form.get('phone') || '',
-        ).trim(),
-        address: String(
-          form.get('address') || '',
-        ).trim(),
-        city: String(
-          form.get('city') || '',
-        ).trim(),
-        postalCode: String(
-          form.get(
-            'postalCode',
-          ) || '',
-        ).trim(),
+        name:
+          String(
+            form.get(
+              'name',
+            ) ||
+              '',
+          ).trim(),
+
+        email:
+          String(
+            form.get(
+              'email',
+            ) ||
+              '',
+          ).trim(),
+
+        phone:
+          String(
+            form.get(
+              'phone',
+            ) ||
+              '',
+          ).trim(),
+
+        address:
+          String(
+            form.get(
+              'address',
+            ) ||
+              '',
+          ).trim(),
+
+        city:
+          String(
+            form.get(
+              'city',
+            ) ||
+              '',
+          ).trim(),
+
+        postalCode:
+          String(
+            form.get(
+              'postalCode',
+            ) ||
+              '',
+          ).trim(),
       };
 
       if (
@@ -319,7 +576,12 @@ export default function CheckoutPage() {
         );
       }
 
-      let proofUrl = '';
+      let proofUrl =
+        '';
+
+      /* =====================================
+         QR PAYMENT PROOF
+      ====================================== */
 
       if (
         method === 'QR' &&
@@ -337,18 +599,25 @@ export default function CheckoutPage() {
           await fetch(
             '/api/payment-proof',
             {
-              method: 'POST',
+              method:
+                'POST',
+
               headers: {
-                Authorization: `Bearer ${session.access_token}`,
+                Authorization:
+                  `Bearer ${session.access_token}`,
               },
-              body: uploadForm,
+
+              body:
+                uploadForm,
             },
           );
 
         const proofResult =
           await proofResponse
             .json()
-            .catch(() => ({}));
+            .catch(
+              () => ({}),
+            );
 
         if (
           !proofResponse.ok
@@ -360,7 +629,8 @@ export default function CheckoutPage() {
         }
 
         proofUrl =
-          proofResult.path || '';
+          proofResult.path ||
+          '';
 
         if (!proofUrl) {
           throw new Error(
@@ -369,88 +639,140 @@ export default function CheckoutPage() {
         }
       }
 
+      /* =====================================
+         BUILD ORDER
+      ====================================== */
+
       const order:
         Order & {
           userId: string;
         } = {
-        id: `EP-${Date.now()
-          .toString()
-          .slice(-8)}`,
+        id:
+          `EP-${Date.now()
+            .toString()
+            .slice(-8)}`,
+
         createdAt:
-          new Date().toISOString(),
+          new Date()
+            .toISOString(),
+
         userId:
           session.user.id,
+
         customer,
+
+        /*
+         * IMPORTANT:
+         *
+         * Checkout Now uses the
+         * selected product only.
+         *
+         * Cart checkout uses the
+         * cart products.
+         */
         items:
-          cartProducts.map(
+          checkoutProducts.map(
             ({
               product,
               quantity,
             }) => ({
               productId:
                 product.id,
+
               name:
                 product.name,
+
               price:
                 product.price,
+
               quantity,
             }),
           ),
+
         subtotal,
+
         shipping,
+
         discount,
+
         total,
+
         paymentMethod:
           method,
+
         paymentProofName:
           proof?.name,
+
         transactionId:
-          method === 'QR'
+          method ===
+            'QR'
             ? txid.trim()
             : undefined,
+
         status:
-          method === 'QR'
+          method ===
+            'QR'
             ? 'Payment Verification Required'
             : 'Pending',
       };
 
-      const response = await fetch(
-        '/api/orders',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type':
-              'application/json',
-            Authorization:
-              `Bearer ${session.access_token}`,
+      /* =====================================
+         CREATE ORDER
+      ====================================== */
+
+      const response =
+        await fetch(
+          '/api/orders',
+          {
+            method:
+              'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+
+              Authorization:
+                `Bearer ${session.access_token}`,
+            },
+
+            body:
+              JSON.stringify({
+                ...order,
+
+                paymentProofPath:
+                  proofUrl,
+
+                promoCode:
+                  validPromo?.code ||
+                  null,
+              }),
           },
-          body: JSON.stringify({
-            ...order,
-            paymentProofPath:
-              proofUrl,
-            promoCode:
-              validPromo?.code ||
-              null,
-          }),
-        },
-      );
+        );
 
       const result =
         await response
           .json()
-          .catch(() => ({}));
+          .catch(
+            () => ({}),
+          );
 
-      if (!response.ok) {
+      if (
+        !response.ok
+      ) {
         let errorMessage =
           result.error ||
           'Could not place order.';
 
-        if (result.details) {
+        if (
+          result.details
+        ) {
           errorMessage +=
             `\n${result.details}`;
         }
 
-        if (result.hint) {
+        if (
+          result.hint
+        ) {
           errorMessage +=
             `\n${result.hint}`;
         }
@@ -460,102 +782,138 @@ export default function CheckoutPage() {
         );
       }
 
-if (result.orderId) {
-  order.id = String(
-    result.orderId,
-  );
-}
+      if (
+        result.orderId
+      ) {
+        order.id =
+          String(
+            result.orderId,
+          );
+      }
 
-/*
- * SEND ORDER CONFIRMATION EMAIL
- *
- * The order is already successfully
- * created at this point.
- *
- * If the email fails, the customer's
- * order will still remain successful.
- */
-try {
-  const emailResponse =
-    await fetch(
-      '/api/customer/order-confirmation',
-      {
-        method: 'POST',
+      /* =====================================
+         SEND CONFIRMATION EMAIL
+      ====================================== */
 
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
+      try {
+        const emailResponse =
+          await fetch(
+            '/api/customer/order-confirmation',
+            {
+              method:
+                'POST',
 
-        body: JSON.stringify({
-          orderId: order.id,
-        }),
-      },
-    );
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
 
-  const emailResult =
-    await emailResponse
-      .json()
-      .catch(() => ({}));
+              body:
+                JSON.stringify({
+                  orderId:
+                    order.id,
+                }),
+            },
+          );
 
-  if (!emailResponse.ok) {
-    console.error(
-      'ORDER CONFIRMATION EMAIL FAILED:',
-      {
-        status:
-          emailResponse.status,
+        const emailResult =
+          await emailResponse
+            .json()
+            .catch(
+              () => ({}),
+            );
 
-        error:
-          emailResult.error ||
-          'Unknown email error',
-      },
-    );
-  } else {
-    console.log(
-      'ORDER CONFIRMATION EMAIL SENT',
-    );
-  }
-} catch (emailError) {
-  console.error(
-    'ORDER CONFIRMATION EMAIL REQUEST FAILED:',
-    emailError,
-  );
-}
+        if (
+          !emailResponse.ok
+        ) {
+          console.error(
+            'ORDER CONFIRMATION EMAIL FAILED:',
+            {
+              status:
+                emailResponse.status,
 
-/*
- * Clear cart and show success page.
- */
-placeLocalOrder(order);
+              error:
+                emailResult.error ||
+                'Unknown email error',
+            },
+          );
+        } else {
+          console.log(
+            'ORDER CONFIRMATION EMAIL SENT',
+          );
+        }
+      } catch (
+        emailError
+      ) {
+        console.error(
+          'ORDER CONFIRMATION EMAIL REQUEST FAILED:',
+          emailError,
+        );
+      }
 
-setPlaced(order);
+      /* =====================================
+         SUCCESS
+      ====================================== */
+
+      /*
+       * StoreProvider now removes
+       * only products actually bought.
+       *
+       * Therefore Buy Now does not
+       * erase unrelated cart items.
+       */
+      placeLocalOrder(
+        order,
+      );
+
+      setPlaced(
+        order,
+      );
 
       window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
+        top:
+          0,
+
+        behavior:
+          'smooth',
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         'CHECKOUT ERROR:',
         error,
       );
 
       alert(
-        error instanceof Error
+        error instanceof
+          Error
           ? error.message
           : 'Could not place order.',
       );
     } finally {
-      setBusy(false);
+      setBusy(
+        false,
+      );
     }
   }
 
-  if (!authChecked || !ready) {
+  /* =========================================
+     LOADING
+  ========================================= */
+
+  if (
+    !authChecked ||
+    !ready ||
+    !checkoutIntentReady
+  ) {
     return (
       <div className="container content-page">
         <div className="empty-state">
           <h2>
             Loading checkout…
           </h2>
+
           <p className="muted">
             Checking your account and current inventory.
           </p>
@@ -563,6 +921,44 @@ setPlaced(order);
       </div>
     );
   }
+
+  /* =========================================
+     INVALID / SOLD BUY NOW PRODUCT
+  ========================================= */
+
+  if (
+    isBuyNow &&
+    (
+      !buyNowProduct ||
+      buyNowProduct.inventory <
+        1
+    )
+  ) {
+    return (
+      <div className="container content-page">
+        <div className="empty-state">
+          <h2>
+            This product is no longer available.
+          </h2>
+
+          <p className="muted">
+            The item may have been sold or removed from the store.
+          </p>
+
+          <Link
+            className="btn sage"
+            href="/shop"
+          >
+            Back to shop
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================================
+     LOGIN REQUIRED
+  ========================================= */
 
   if (!userId) {
     return (
@@ -583,87 +979,126 @@ setPlaced(order);
           </p>
 
           <Link
-            href="/login"
+            href={
+              loginPath
+            }
             className="btn sage"
           >
             Login / Sign Up
           </Link>
 
           <Link
-            href="/cart"
+            href={
+              isBuyNow
+                ? `/product/${buyNowProduct?.slug}`
+                : '/cart'
+            }
             className="btn secondary"
             style={{
-              marginLeft: 8,
+              marginLeft:
+                8,
             }}
           >
-            Back to cart
+            {isBuyNow
+              ? 'Back to product'
+              : 'Back to cart'}
           </Link>
         </div>
       </div>
     );
   }
 
+  /* =========================================
+     ORDER SUCCESS
+  ========================================= */
+
   if (placed) {
     return (
       <div className="container content-page">
         <div className="success-box">
           <div className="success-icon">
-            <Check size={34} />
+            <Check
+              size={34}
+            />
           </div>
 
           <span className="eyebrow">
-            Order {placed.id}
+            Order{' '}
+            {
+              placed.id
+            }
           </span>
 
-<h2
-  style={{
-    marginTop: 12,
-  }}
->
-  Order placed successfully!
-</h2>
+          <h2
+            style={{
+              marginTop:
+                12,
+            }}
+          >
+            Order placed successfully!
+          </h2>
 
-<p
-  style={{
-    marginTop: 10,
-    marginBottom: 18,
-    color: '#36513a',
-    fontWeight: 700,
-    lineHeight: 1.5,
-  }}
->
-  Please check your email for order confirmation.
-  If you did not receive it, please check your spam or junk folder.
-</p>
+          <p
+            style={{
+              marginTop:
+                10,
 
-{placed.paymentMethod === 'COD' && (
-  <p
-    style={{
-      color: '#b42318',
-      fontWeight: 800,
-      marginTop: 10,
-      marginBottom: 18,
-    }}
-  >
-    Order placed successfully! Our associate will contact you shortly for verification.
-  </p>
-)}
+              marginBottom:
+                18,
 
-<p>
-  {placed.paymentMethod === 'QR'
-    ? 'Your payment proof has been submitted successfully. Your payment is now waiting for admin verification.'
-    : 'Your Cash on Delivery order has been placed successfully and is now Pending.'}
-</p>
+              color:
+                '#36513a',
+
+              fontWeight:
+                700,
+
+              lineHeight:
+                1.5,
+            }}
+          >
+            Please check your email for order confirmation.
+            If you did not receive it, please check your spam or junk folder.
+          </p>
+
+          {placed.paymentMethod ===
+            'COD' && (
+            <p
+              style={{
+                color:
+                  '#b42318',
+
+                fontWeight:
+                  800,
+
+                marginTop:
+                  10,
+
+                marginBottom:
+                  18,
+              }}
+            >
+              Order placed successfully! Our associate will contact you shortly for verification.
+            </p>
+          )}
 
           <p>
-            <b>Shipping:</b>{' '}
-            {settings.shippingInfo}
+            {placed.paymentMethod ===
+            'QR'
+              ? 'Your payment proof has been submitted successfully. Your payment is now waiting for admin verification.'
+              : 'Your Cash on Delivery order has been placed successfully and is now Pending.'}
+          </p>
+
+          <p>
+            <b>
+              Shipping:
+            </b>{' '}
+            {
+              settings.shippingInfo
+            }
           </p>
 
           <p className="muted">
-            The product total shown
-            online does not include a
-            fixed shipping fee.
+            The product total shown online does not include a fixed shipping fee.
           </p>
 
           <div
@@ -692,7 +1127,13 @@ setPlaced(order);
     );
   }
 
-  if (!cartProducts.length) {
+  /* =========================================
+     EMPTY CART
+  ========================================= */
+
+  if (
+    !checkoutProducts.length
+  ) {
     return (
       <div className="container content-page">
         <div className="empty-state">
@@ -711,6 +1152,10 @@ setPlaced(order);
     );
   }
 
+  /* =========================================
+     CHECKOUT FORM
+  ========================================= */
+
   return (
     <div className="container">
       <div className="page-hero">
@@ -718,7 +1163,9 @@ setPlaced(order);
           Almost yours
         </span>
 
-        <h1>Checkout.</h1>
+        <h1>
+          Checkout.
+        </h1>
 
         <p>
           Choose Cash on Delivery
@@ -728,10 +1175,14 @@ setPlaced(order);
       </div>
 
       <form
-        onSubmit={submit}
+        onSubmit={
+          submit
+        }
         className="checkout-layout"
       >
         <div className="stack">
+          {/* DELIVERY DETAILS */}
+
           <section className="panel">
             <h3>
               Delivery details
@@ -763,7 +1214,11 @@ setPlaced(order);
                   defaultValue={
                     userEmail
                   }
-                  readOnly={Boolean(userEmail)}
+                  readOnly={
+                    Boolean(
+                      userEmail,
+                    )
+                  }
                   autoComplete="email"
                   required
                 />
@@ -830,6 +1285,8 @@ setPlaced(order);
             </div>
           </section>
 
+          {/* PAYMENT METHOD */}
+
           <section className="panel">
             <h3>
               Payment method
@@ -839,7 +1296,8 @@ setPlaced(order);
               {settings.codEnabled && (
                 <label
                   className={`payment-card ${
-                    method === 'COD'
+                    method ===
+                    'COD'
                       ? 'active'
                       : ''
                   }`}
@@ -849,10 +1307,13 @@ setPlaced(order);
                     name="paymentMethod"
                     value="COD"
                     checked={
-                      method === 'COD'
+                      method ===
+                      'COD'
                     }
                     onChange={() =>
-                      setMethod('COD')
+                      setMethod(
+                        'COD',
+                      )
                     }
                   />
 
@@ -860,8 +1321,7 @@ setPlaced(order);
 
                   <div>
                     <b>
-                      Cash on Delivery
-                      (COD)
+                      Cash on Delivery (COD)
                     </b>
 
                     <p className="muted">
@@ -874,7 +1334,8 @@ setPlaced(order);
               {settings.qrEnabled && (
                 <label
                   className={`payment-card ${
-                    method === 'QR'
+                    method ===
+                    'QR'
                       ? 'active'
                       : ''
                   }`}
@@ -884,10 +1345,13 @@ setPlaced(order);
                     name="paymentMethod"
                     value="QR"
                     checked={
-                      method === 'QR'
+                      method ===
+                      'QR'
                     }
                     onChange={() =>
-                      setMethod('QR')
+                      setMethod(
+                        'QR',
+                      )
                     }
                   />
 
@@ -899,9 +1363,7 @@ setPlaced(order);
                     </b>
 
                     <p className="muted">
-                      Scan the store
-                      QR, pay, then
-                      upload proof.
+                      Scan the store QR, pay, then upload proof.
                     </p>
                   </div>
                 </label>
@@ -911,14 +1373,21 @@ setPlaced(order);
             <div
               className="notice"
               style={{
-                marginTop: 16,
+                marginTop:
+                  16,
               }}
             >
-              <b>Shipping:</b>{' '}
-              {settings.shippingInfo}
+              <b>
+                Shipping:
+              </b>{' '}
+              {
+                settings.shippingInfo
+              }
             </div>
 
-            {method === 'QR' && settings.qrEnabled && (
+            {method ===
+              'QR' &&
+              settings.qrEnabled && (
               <div className="qr-box">
                 <img
                   src={
@@ -929,23 +1398,21 @@ setPlaced(order);
                 />
 
                 <b>
-                  Scan and complete
-                  your payment
+                  Scan and complete your payment
                 </b>
 
                 <p className="muted">
-                  Product total below
-                  does not include a
-                  fixed shipping fee.
-                  Shipping is confirmed
-                  separately.
+                  Product total below does not include a fixed shipping fee. Shipping is confirmed separately.
                 </p>
 
                 <div
                   className="field"
                   style={{
-                    textAlign: 'left',
-                    marginTop: 14,
+                    textAlign:
+                      'left',
+
+                    marginTop:
+                      14,
                   }}
                 >
                   <label>
@@ -957,9 +1424,12 @@ setPlaced(order);
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     required={
-                      method === 'QR'
+                      method ===
+                      'QR'
                     }
-                    onChange={(event) =>
+                    onChange={(
+                      event,
+                    ) =>
                       handleProof(
                         event.target
                           .files?.[0],
@@ -981,26 +1451,33 @@ setPlaced(order);
                 <div
                   className="field"
                   style={{
-                    textAlign: 'left',
-                    marginTop: 12,
+                    textAlign:
+                      'left',
+
+                    marginTop:
+                      12,
                   }}
                 >
                   <label>
-                    Transaction /
-                    Reference ID
+                    Transaction / Reference ID
                   </label>
 
                   <input
                     className="control"
-                    value={txid}
-                    onChange={(event) =>
+                    value={
+                      txid
+                    }
+                    onChange={(
+                      event,
+                    ) =>
                       setTxid(
                         event.target
                           .value,
                       )
                     }
                     required={
-                      method === 'QR'
+                      method ===
+                      'QR'
                     }
                     placeholder="e.g. TXN123456789"
                   />
@@ -1010,28 +1487,38 @@ setPlaced(order);
           </section>
         </div>
 
+        {/* ORDER SUMMARY */}
+
         <aside
           className="panel"
           style={{
-            height: 'max-content',
+            height:
+              'max-content',
           }}
         >
           <h3>
             Your order
           </h3>
 
-          {cartProducts.map(
+          {checkoutProducts.map(
             ({
               product,
               quantity,
             }) => (
               <div
                 className="summary-row"
-                key={product.id}
+                key={
+                  product.id
+                }
               >
                 <span>
-                  {product.name} ×{' '}
-                  {quantity}
+                  {
+                    product.name
+                  }{' '}
+                  ×{' '}
+                  {
+                    quantity
+                  }
                 </span>
 
                 <div className="checkout-line-price">
@@ -1059,11 +1546,15 @@ setPlaced(order);
 
           <hr
             style={{
-              border: 0,
+              border:
+                0,
+
               borderTop:
                 '1px solid var(--line)',
             }}
           />
+
+          {/* PROMO */}
 
           <div className="field">
             <label>
@@ -1072,10 +1563,15 @@ setPlaced(order);
 
             <input
               className="control"
-              value={promo}
-              onChange={(event) =>
+              value={
+                promo
+              }
+              onChange={(
+                event,
+              ) =>
                 setPromo(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
               placeholder="EASY10"
@@ -1097,7 +1593,10 @@ setPlaced(order);
             )}
           </div>
 
-          {productSavings > 0 && (
+          {/* SAVINGS */}
+
+          {productSavings >
+            0 && (
             <>
               <div className="summary-row">
                 <span>
@@ -1117,23 +1616,33 @@ setPlaced(order);
                 </span>
 
                 <b className="summary-saving">
-                  −{money(productSavings)}
+                  −
+                  {money(
+                    productSavings,
+                  )}
                 </b>
               </div>
             </>
           )}
 
+          {/* SUBTOTAL */}
+
           <div className="summary-row">
             <span>
-              {productSavings > 0
+              {productSavings >
+              0
                 ? 'Sale subtotal'
                 : 'Subtotal'}
             </span>
 
             <b>
-              {money(subtotal)}
+              {money(
+                subtotal,
+              )}
             </b>
           </div>
+
+          {/* SHIPPING */}
 
           <div className="summary-row">
             <span>
@@ -1142,8 +1651,11 @@ setPlaced(order);
 
             <b
               style={{
-                textAlign: 'right',
-                maxWidth: 180,
+                textAlign:
+                  'right',
+
+                maxWidth:
+                  180,
               }}
             >
               {
@@ -1152,17 +1664,25 @@ setPlaced(order);
             </b>
           </div>
 
-          {discount > 0 && (
+          {/* PROMO DISCOUNT */}
+
+          {discount >
+            0 && (
             <div className="summary-row">
               <span>
                 Discount
               </span>
 
               <b>
-                −{money(discount)}
+                −
+                {money(
+                  discount,
+                )}
               </b>
             </div>
           )}
+
+          {/* TOTAL */}
 
           <div className="summary-row total">
             <span>
@@ -1170,37 +1690,47 @@ setPlaced(order);
             </span>
 
             <span>
-              {money(total)}
+              {money(
+                total,
+              )}
             </span>
           </div>
 
           <p
             className="muted"
             style={{
-              fontSize: '.75rem',
-              marginTop: 6,
+              fontSize:
+                '.75rem',
+
+              marginTop:
+                6,
             }}
           >
-            Shipping is not included
-            in the product total.
+            Shipping is not included in the product total.
           </p>
 
           <button
             type="submit"
             disabled={
               busy ||
-              (!settings.codEnabled &&
-                !settings.qrEnabled)
+              (
+                !settings.codEnabled &&
+                !settings.qrEnabled
+              )
             }
             className="btn sage"
             style={{
-              width: '100%',
-              marginTop: 14,
+              width:
+                '100%',
+
+              marginTop:
+                14,
             }}
           >
             {busy
               ? 'Placing order…'
-              : method === 'QR'
+              : method ===
+                  'QR'
                 ? 'Submit payment for verification'
                 : 'Place COD order'}
           </button>
@@ -1208,13 +1738,14 @@ setPlaced(order);
           <p
             className="muted"
             style={{
-              fontSize: '.72rem',
-              marginTop: 12,
+              fontSize:
+                '.72rem',
+
+              marginTop:
+                12,
             }}
           >
-            By ordering, you agree
-            to the store&apos;s shipping
-            and return policy.
+            By ordering, you agree to the store&apos;s shipping and return policy.
           </p>
         </aside>
       </form>

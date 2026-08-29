@@ -742,15 +742,16 @@ export default function SellPage() {
         await supabase.auth.getSession();
 
       if (
-        sessionError ||
-        !session
-          ?.access_token
-      ) {
-        throw new Error(
-          'Your login session has expired. Please login again.',
-        );
-      }
+  sessionError ||
+  !session?.access_token
+) {
+  window.location.href =
+    `/login?next=${encodeURIComponent(
+      '/sell',
+    )}`;
 
+  return;
+}
       accessToken =
         session.access_token;
 
@@ -1006,11 +1007,13 @@ export default function SellPage() {
 
           <div className="hero-actions">
             <Link
-              href="/login"
-              className="btn sage"
-            >
-              Login / Sign Up
-            </Link>
+  href={`/login?next=${encodeURIComponent(
+    '/sell',
+  )}`}
+  className="btn sage"
+>
+  Login / Sign Up
+</Link>
 
             <Link
               href="/shop"

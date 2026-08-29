@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  useEffect,
   useState,
 } from 'react';
 
@@ -20,6 +21,12 @@ export default function LoginPage() {
     useRouter();
 
   const [
+    redirectAfterAuth,
+    setRedirectAfterAuth,
+  ] =
+    useState('/account');
+
+  const [
     mode,
     setMode,
   ] =
@@ -30,7 +37,8 @@ export default function LoginPage() {
   const [
     message,
     setMessage,
-  ] = useState('');
+  ] =
+    useState('');
 
   const [
     messageType,
@@ -43,7 +51,56 @@ export default function LoginPage() {
   const [
     loading,
     setLoading,
-  ] = useState(false);
+  ] =
+    useState(false);
+
+  /*
+   * =========================================
+   * REMEMBER REQUESTED PAGE
+   * =========================================
+   *
+   * Example:
+   *
+   * /login?next=/account/orders
+   *
+   * After login:
+   *
+   * /account/orders
+   */
+
+  useEffect(() => {
+    const params =
+      new URLSearchParams(
+        window.location.search,
+      );
+
+    const requestedNext =
+      params.get('next');
+
+    /*
+     * Only allow internal URLs.
+     *
+     * This prevents redirects such as:
+     * //example.com
+     * https://example.com
+     */
+    if (
+      requestedNext &&
+      requestedNext.startsWith('/') &&
+      !requestedNext.startsWith('//') &&
+      requestedNext !== '/login'
+    ) {
+      setRedirectAfterAuth(
+        requestedNext,
+      );
+    }
+  }, []);
+
+  /*
+   * =========================================
+   * SUBMIT
+   * =========================================
+   */
 
   async function submit(
     event:
@@ -52,7 +109,9 @@ export default function LoginPage() {
     event.preventDefault();
 
     setLoading(true);
+
     setMessage('');
+
     setMessageType(
       'success',
     );
@@ -88,10 +147,11 @@ export default function LoginPage() {
 
     try {
       /*
-       * =========================
+       * =====================================
        * SIGN UP
-       * =========================
+       * =====================================
        */
+
       if (
         mode === 'signup'
       ) {
@@ -127,10 +187,11 @@ export default function LoginPage() {
         /*
          * EMAIL CONFIRMATION OFF
          *
-         * A session means the account
-         * was created and the customer
-         * was logged in immediately.
+         * If Supabase immediately gives us
+         * a session, the customer is already
+         * logged in.
          */
+
         if (data.session) {
           setMessageType(
             'success',
@@ -143,7 +204,7 @@ export default function LoginPage() {
           window.setTimeout(
             () => {
               router.push(
-                '/account',
+                redirectAfterAuth,
               );
 
               router.refresh();
@@ -156,17 +217,8 @@ export default function LoginPage() {
 
         /*
          * EMAIL CONFIRMATION ON
-         *
-         * Supabase intentionally does
-         * not always reveal whether an
-         * email already has an account.
-         *
-         * Therefore we use a message
-         * that is correct for BOTH:
-         *
-         * - brand-new customer
-         * - existing customer
          */
+
         setMessageType(
           'success',
         );
@@ -179,19 +231,21 @@ export default function LoginPage() {
       }
 
       /*
-       * =========================
+       * =====================================
        * LOGIN
-       * =========================
+       * =====================================
        */
+
       const {
         error,
       } =
-        await supabase.auth.signInWithPassword(
-          {
-            email,
-            password,
-          },
-        );
+        await supabase.auth
+          .signInWithPassword(
+            {
+              email,
+              password,
+            },
+          );
 
       if (error) {
         setMessageType(
@@ -213,10 +267,19 @@ export default function LoginPage() {
         'Login successful.',
       );
 
+      /*
+       * Important:
+       *
+       * Instead of always sending the
+       * customer to /account, send them
+       * back to the page they originally
+       * requested.
+       */
+
       window.setTimeout(
         () => {
           router.push(
-            '/account',
+            redirectAfterAuth,
           );
 
           router.refresh();
@@ -243,12 +306,20 @@ export default function LoginPage() {
     }
   }
 
+  /*
+   * =========================================
+   * SWITCH LOGIN / SIGNUP
+   * =========================================
+   */
+
   function switchMode(
     newMode:
       | 'login'
       | 'signup',
   ) {
-    setMode(newMode);
+    setMode(
+      newMode,
+    );
 
     setMessage('');
 
@@ -256,6 +327,12 @@ export default function LoginPage() {
       'success',
     );
   }
+
+  /*
+   * =========================================
+   * PAGE
+   * =========================================
+   */
 
   return (
     <div className="container">
@@ -514,7 +591,9 @@ export default function LoginPage() {
 
         <div
           style={{
-            marginTop: 20,
+            marginTop:
+              20,
+
             textAlign:
               'center',
           }}
@@ -539,7 +618,8 @@ export default function LoginPage() {
                   border:
                     'none',
 
-                  padding: 0,
+                  padding:
+                    0,
 
                   cursor:
                     'pointer',
@@ -576,7 +656,8 @@ export default function LoginPage() {
                   border:
                     'none',
 
-                  padding: 0,
+                  padding:
+                    0,
 
                   cursor:
                     'pointer',

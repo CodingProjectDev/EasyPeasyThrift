@@ -1193,70 +1193,85 @@ export function StoreProvider({
    * customer already purchased.
    */
   const placeLocalOrder =
-    (
-      _order: Order,
-    ) => {
-      const productIds =
-        cart.map(
+  (
+    order: Order,
+  ) => {
+    
+
+    const purchasedProductIds =
+      new Set(
+        order.items.map(
           (item) =>
             item.productId,
-        );
+        ),
+      );
 
-      if (
-        customerUserId
-      ) {
-        productIds.forEach(
-          (id) => {
-            void productNotification(
-              id,
-              'cart',
-              'cancel',
+    const productIds =
+      Array.from(
+        purchasedProductIds,
+      );
+
+    if (
+      customerUserId
+    ) {
+      productIds.forEach(
+        (id) => {
+          void productNotification(
+            id,
+            'cart',
+            'cancel',
+          );
+        },
+      );
+    }
+
+    setCart(
+      (current) =>
+        current.filter(
+          (item) =>
+            !purchasedProductIds.has(
+              item.productId,
+            ),
+        ),
+    );
+
+    const supabase =
+      createClient();
+
+    void supabase
+      .from(
+        'products',
+      )
+      .select('*')
+      .eq(
+        'active',
+        true,
+      )
+      .order(
+        'created_at',
+        {
+          ascending:
+            false,
+        },
+      )
+      .then(
+        ({
+          data,
+          error,
+        }) => {
+          if (!error) {
+            setProducts(
+              (
+                data ||
+                []
+              ).map(
+                productFromRow,
+              ),
             );
-          },
-        );
-      }
-
-      setCart([]);
-
-      const supabase =
-        createClient();
-
-      void supabase
-        .from(
-          'products',
-        )
-        .select('*')
-        .eq(
-          'active',
-          true,
-        )
-        .order(
-          'created_at',
-          {
-            ascending:
-              false,
-          },
-        )
-        .then(
-          ({
-            data,
-            error,
-          }) => {
-            if (
-              !error
-            ) {
-              setProducts(
-                (
-                  data ||
-                  []
-                ).map(
-                  productFromRow,
-                ),
-              );
-            }
-          },
-        );
-    };
+          }
+        },
+      );
+  };
 
   const addProduct =
     (
