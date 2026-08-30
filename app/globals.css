@@ -168,17 +168,17 @@ textarea:focus-visible{
 ========================================= */
 
 .announcement{
-  background:var(--black);
-  color:white;
-  text-align:center;
-  padding:8px 12px;
-  font-size:.78rem;
-  letter-spacing:.03em;
+  background: #5f735a;
+  color: #f7f4ec;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: .78rem;
+  letter-spacing: .03em;
 }
 
 .announcement span{
-  color:#b8c9b5;
-  margin:0 8px;
+  color: #e8efe5;
+  margin: 0 8px;
 }
 
 .site-header{
@@ -2714,7 +2714,7 @@ textarea:focus-visible{
 
   overflow:hidden;
 
-  background:#171714;
+  background:#5f735a;
   color:#fff;
 
   white-space:nowrap;
