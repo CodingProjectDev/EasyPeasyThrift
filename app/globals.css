@@ -1628,7 +1628,22 @@ textarea:focus-visible{
   margin:0 auto 12px;
   border-radius:12px;
 }
+/* Bigger payment QR on phones */
+@media (max-width: 760px) {
+  .qr-box img {
+    width: 300px;
+    height: 300px;
+    max-width: 100%;
+  }
+}
 
+/* Very small phones */
+@media (max-width: 380px) {
+  .qr-box img {
+    width: 235px;
+    height: 235px;
+  }
+}
 .upload-preview{
   max-width:220px;
   border-radius:12px;
