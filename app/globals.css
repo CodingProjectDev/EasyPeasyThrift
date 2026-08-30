@@ -6931,3 +6931,76 @@ textarea:focus-visible{
 .typing-effect.typing-inline {
   display: inline-block;
 }
+/* =================================
+   EASYPEASY FOOTER THEME
+================================= */
+
+footer,
+.site-footer,
+.footer {
+  background: #f7f4ec !important;
+  color: #262a25 !important;
+  border-top: 1px solid #deddd3;
+}
+
+/* Footer headings */
+footer h1,
+footer h2,
+footer h3,
+footer h4,
+footer strong,
+.site-footer h1,
+.site-footer h2,
+.site-footer h3,
+.site-footer h4,
+.footer h1,
+.footer h2,
+.footer h3,
+.footer h4 {
+  color: #394b35 !important;
+}
+
+/* Normal footer text */
+footer p,
+.site-footer p,
+.footer p {
+  color: #72776f !important;
+}
+
+/* Footer links */
+footer a,
+.site-footer a,
+.footer a {
+  color: #394b35 !important;
+  text-decoration: none;
+}
+
+footer a:hover,
+.site-footer a:hover,
+.footer a:hover {
+  color: #5f735a !important;
+}
+
+/* Section labels like SHOP / HELP / ABOUT */
+footer .eyebrow,
+footer .footer-title,
+footer .footer-heading,
+.site-footer .eyebrow,
+.site-footer .footer-title,
+.site-footer .footer-heading {
+  color: #5f735a !important;
+}
+
+/* Footer divider */
+footer hr,
+.site-footer hr,
+.footer hr {
+  border-color: #deddd3 !important;
+}
+
+/* Copyright */
+footer small,
+.site-footer small,
+.footer small {
+  color: #7a8077 !important;
+}
