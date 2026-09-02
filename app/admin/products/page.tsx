@@ -34,6 +34,7 @@ const blank = {
   condition: 'Excellent' as ProductCondition,
   category: '',
   inventory: 1,
+  shippingFee: '',
   image: '',
   tiktokUrl: '',
   description: '',
@@ -56,6 +57,11 @@ type DraftImage =
       src: string;
       file: File;
     };
+
+type ShippingMode =
+  | 'manual'
+  | 'free'
+  | 'fixed';
 
 /* =========================================
    IMAGE HELPERS
@@ -391,6 +397,14 @@ export default function AdminProducts() {
   ] =
     useState(false);
 
+  const [
+    shippingMode,
+    setShippingMode,
+  ] =
+    useState<ShippingMode>(
+      'manual',
+    );
+
   /* =========================================
      PHOTO CLEANUP
      ========================================= */
@@ -428,6 +442,9 @@ export default function AdminProducts() {
     );
     setUploadingPhoto(
       false,
+    );
+    setShippingMode(
+      'manual',
     );
     setEdit(null);
     setOpen(false);
@@ -513,6 +530,14 @@ export default function AdminProducts() {
 
     setUploadingPhoto(
       false,
+    );
+
+    setShippingMode(
+      current?.freeShipping
+        ? 'free'
+        : current?.shippingFee != null
+          ? 'fixed'
+          : 'manual',
     );
 
     setOpen(true);
@@ -923,6 +948,48 @@ export default function AdminProducts() {
           ) / 100
         : regularPrice;
 
+    const selectedShippingMode =
+      String(
+        form.get(
+          'shippingMode',
+        ) || 'manual',
+      ) as ShippingMode;
+
+    const shippingFeeText =
+      String(
+        form.get(
+          'shippingFee',
+        ) || '',
+      ).trim();
+
+    const shippingFee =
+      selectedShippingMode ===
+      'fixed'
+        ? Number(
+            shippingFeeText,
+          )
+        : undefined;
+
+    if (
+      selectedShippingMode ===
+        'fixed' &&
+      (
+        shippingFeeText === '' ||
+        !Number.isFinite(
+          shippingFee,
+        ) ||
+        Number(
+          shippingFee,
+        ) < 0
+      )
+    ) {
+      setPhotoError(
+        'Please enter a valid shipping fee.',
+      );
+
+      return;
+    }
+
     setPhotoError('');
     setUploadingPhoto(
       true,
@@ -1066,6 +1133,18 @@ export default function AdminProducts() {
               'inventory',
             ),
           ),
+
+        shippingFee:
+          selectedShippingMode ===
+          'fixed'
+            ? Number(
+                shippingFee,
+              )
+            : undefined,
+
+        freeShipping:
+          selectedShippingMode ===
+          'free',
 
         oneOfOne:
           form.get(
@@ -1257,6 +1336,10 @@ export default function AdminProducts() {
               </th>
 
               <th>
+                Shipping
+              </th>
+
+              <th>
                 Flags
               </th>
 
@@ -1385,6 +1468,16 @@ export default function AdminProducts() {
                     {
                       product.inventory
                     }
+                  </td>
+
+                  <td>
+                    {product.freeShipping
+                      ? 'FREE'
+                      : product.shippingFee != null
+                        ? money(
+                            product.shippingFee,
+                          )
+                        : 'By location'}
                   </td>
 
                   <td>
@@ -1647,6 +1740,81 @@ export default function AdminProducts() {
                   }
                   required
                 />
+              </div>
+
+              {/* SHIPPING */}
+
+              <div>
+                <label>
+                  Shipping
+                </label>
+
+                <select
+                  name="shippingMode"
+                  value={
+                    shippingMode
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setShippingMode(
+                      event.target
+                        .value as ShippingMode,
+                    )
+                  }
+                >
+                  <option value="manual">
+                    Depends on product and location
+                  </option>
+
+                  <option value="free">
+                    Free shipping
+                  </option>
+
+                  <option value="fixed">
+                    Custom shipping fee
+                  </option>
+                </select>
+
+                <small className="muted">
+                  Choose how shipping should be handled for this product.
+                </small>
+              </div>
+
+              <div>
+                <label>
+                  Shipping fee (Rs.)
+                </label>
+
+                <input
+                  name="shippingFee"
+                  type="number"
+                  min="0"
+                  step="1"
+                  defaultValue={
+                    edit?.shippingFee ??
+                    blank.shippingFee
+                  }
+                  disabled={
+                    shippingMode !==
+                    'fixed'
+                  }
+                  required={
+                    shippingMode ===
+                    'fixed'
+                  }
+                  placeholder="e.g. 250"
+                />
+
+                <small className="muted">
+                  {shippingMode ===
+                  'free'
+                    ? 'Customer will not be charged shipping for this product.'
+                    : shippingMode ===
+                        'fixed'
+                      ? 'This amount will be added to checkout automatically.'
+                      : 'Shipping will be confirmed separately based on product and location.'}
+                </small>
               </div>
 
               {/* MULTIPLE PHOTO UPLOAD */}

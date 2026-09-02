@@ -68,6 +68,20 @@ function makeRow(product: Product) {
     inventory:
       Number(product.inventory || 0),
 
+    shipping_fee:
+      product.freeShipping
+        ? 0
+        : product.shippingFee == null
+          ? null
+          : Number(
+              product.shippingFee,
+            ),
+
+    free_shipping:
+      Boolean(
+        product.freeShipping,
+      ),
+
     one_of_one:
       Boolean(product.oneOfOne),
 
@@ -303,6 +317,31 @@ export async function POST(
         {
           error:
             'Enter a valid inventory amount.',
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (
+      !product.freeShipping &&
+      product.shippingFee != null &&
+      (
+        !Number.isFinite(
+          Number(
+            product.shippingFee,
+          ),
+        ) ||
+        Number(
+          product.shippingFee,
+        ) < 0
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Enter a valid shipping fee.',
         },
         {
           status: 400,
