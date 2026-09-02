@@ -2,6 +2,7 @@ import { Product, ProductCondition } from '@/lib/types';
 
 export function isUuid(value?: string) {
   if (!value) return false;
+
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
@@ -11,7 +12,10 @@ export function productFromRow(row: any): Product {
     slug: String(row.slug),
     name: String(row.name),
     price: Number(row.price),
-    compareAt: row.compare_at == null ? undefined : Number(row.compare_at),
+    compareAt:
+      row.compare_at == null
+        ? undefined
+        : Number(row.compare_at),
     category: String(row.category),
     size: String(row.size),
     condition: String(row.condition) as ProductCondition,
@@ -21,9 +25,18 @@ export function productFromRow(row: any): Product {
         ? row.measurements
         : {},
     description: String(row.description || ''),
-    tiktokUrl: row.tiktok_url ? String(row.tiktok_url) : undefined,
-    images: Array.isArray(row.images) ? row.images.map(String) : [],
+    tiktokUrl: row.tiktok_url
+      ? String(row.tiktok_url)
+      : undefined,
+    images: Array.isArray(row.images)
+      ? row.images.map(String)
+      : [],
     inventory: Number(row.inventory || 0),
+    shippingFee:
+      row.shipping_fee == null
+        ? undefined
+        : Number(row.shipping_fee),
+    freeShipping: Boolean(row.free_shipping),
     oneOfOne: Boolean(row.one_of_one),
     newArrival: Boolean(row.new_arrival),
     vintageFind: Boolean(row.vintage_find),

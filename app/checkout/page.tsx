@@ -349,12 +349,71 @@ export default function CheckoutPage() {
     );
 
   /*
-   * Shipping is confirmed
-   * separately based on
-   * product and location.
+   * Product-level shipping.
+   *
+   * Free product        -> Rs. 0
+   * Fixed-fee product   -> fee × quantity
+   * Manual/location     -> confirmed separately
+   *
+   * The Supabase place_order() function
+   * performs the authoritative calculation
+   * again on the server/database side.
    */
   const shipping =
-    0;
+    checkoutProducts.reduce(
+      (
+        sum,
+        item,
+      ) => {
+        if (
+          item.product
+            .freeShipping
+        ) {
+          return sum;
+        }
+
+        if (
+          item.product
+            .shippingFee ==
+          null
+        ) {
+          return sum;
+        }
+
+        return (
+          sum +
+          Number(
+            item.product
+              .shippingFee,
+          ) *
+            item.quantity
+        );
+      },
+      0,
+    );
+
+  const hasManualShipping =
+    checkoutProducts.some(
+      (item) =>
+        !item.product
+          .freeShipping &&
+        item.product
+          .shippingFee ==
+          null,
+    );
+
+  const shippingLabel =
+    hasManualShipping
+      ? shipping > 0
+        ? `${money(
+            shipping,
+          )} + location-based shipping`
+        : 'Depends on product and location'
+      : shipping > 0
+        ? money(
+            shipping,
+          )
+        : 'FREE';
 
   const validPromo =
     useMemo(() => {
@@ -391,7 +450,8 @@ export default function CheckoutPage() {
   const total =
     Math.max(
       0,
-      subtotal -
+      subtotal +
+        shipping -
         discount,
     );
 
@@ -692,6 +752,9 @@ export default function CheckoutPage() {
         subtotal,
 
         shipping,
+
+        shippingPending:
+          hasManualShipping,
 
         discount,
 
@@ -1092,14 +1155,24 @@ export default function CheckoutPage() {
             <b>
               Shipping:
             </b>{' '}
-            {
-              settings.shippingInfo
-            }
+            {placed.shippingPending
+              ? placed.shipping > 0
+                ? `${money(
+                    placed.shipping,
+                  )} + location-based shipping`
+                : 'Depends on product and location'
+              : placed.shipping > 0
+                ? money(
+                    placed.shipping,
+                  )
+                : 'FREE'}
           </p>
 
-          <p className="muted">
-            The product total shown online does not include a fixed shipping fee.
-          </p>
+          {placed.shippingPending && (
+            <p className="muted">
+              Additional location-based shipping will be confirmed separately.
+            </p>
+          )}
 
           <div
             className="hero-actions"
@@ -1380,9 +1453,7 @@ export default function CheckoutPage() {
               <b>
                 Shipping:
               </b>{' '}
-              {
-                settings.shippingInfo
-              }
+              {shippingLabel}
             </div>
 
             {method ===
@@ -1402,7 +1473,9 @@ export default function CheckoutPage() {
                 </b>
 
                 <p className="muted">
-                  Product total below does not include a fixed shipping fee. Shipping is confirmed separately.
+                  {hasManualShipping
+                    ? 'Pay the current total shown below. Additional location-based shipping is confirmed separately.'
+                    : 'Pay the full order total shown below, then upload your payment proof.'}
                 </p>
 
                 <div
@@ -1658,9 +1731,7 @@ export default function CheckoutPage() {
                   180,
               }}
             >
-              {
-                settings.shippingInfo
-              }
+              {shippingLabel}
             </b>
           </div>
 
@@ -1686,7 +1757,9 @@ export default function CheckoutPage() {
 
           <div className="summary-row total">
             <span>
-              Product total
+              {hasManualShipping
+                ? 'Current total'
+                : 'Order total'}
             </span>
 
             <span>
@@ -1696,18 +1769,20 @@ export default function CheckoutPage() {
             </span>
           </div>
 
-          <p
-            className="muted"
-            style={{
-              fontSize:
-                '.75rem',
+          {hasManualShipping && (
+            <p
+              className="muted"
+              style={{
+                fontSize:
+                  '.75rem',
 
-              marginTop:
-                6,
-            }}
-          >
-            Shipping is not included in the product total.
-          </p>
+                marginTop:
+                  6,
+              }}
+            >
+              Additional shipping for location-based items is not included and will be confirmed separately.
+            </p>
+          )}
 
           <button
             type="submit"
