@@ -152,11 +152,19 @@ export async function POST(
     const authSupabase =
       await createAuthClient();
 
+    const authorization =
+      request.headers.get('authorization') || '';
+
+    const accessToken = authorization
+      .replace(/^Bearer\s+/i, '')
+      .trim();
+
     const {
       data: { user },
       error: userError,
-    } =
-      await authSupabase.auth.getUser();
+    } = accessToken
+      ? await authSupabase.auth.getUser(accessToken)
+      : await authSupabase.auth.getUser();
 
     if (
       userError ||
